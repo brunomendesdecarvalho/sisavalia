@@ -77,8 +77,10 @@ jobs:
       - name: Verify frozen executable
         shell: pwsh
         run: |
-          & "dist\SisAvalia\SisAvalia.exe" --verificar-instalacao
-          if ($LASTEXITCODE -ne 0) { throw "A verificação do executável falhou." }
+          $proc = Start-Process -FilePath "dist\SisAvalia\SisAvalia.exe" `
+            -ArgumentList "--verificar-instalacao" -Wait -PassThru
+          Write-Host "Código de saída: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) { throw "A verificação do executável falhou." }
 
       - name: Create package
         shell: pwsh
