@@ -12,6 +12,7 @@ import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6.QtCore import QSize, Qt, QTimer
+from shiboken6 import isValid
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication, QHBoxLayout, QLabel, QSizePolicy, QToolButton, QVBoxLayout, QWidget,
@@ -29,27 +30,37 @@ class ResponsiveCanvas(FigureCanvasQTAgg):
 
     def __init__(self, figure: Figure) -> None:
         super().__init__(figure)
-        self._fit_pending = False
+        self._disposed = False
+        self._fit_timer = QTimer(self)
+        self._fit_timer.setSingleShot(True)
+        self._fit_timer.timeout.connect(self._fit_layout)
 
     def resizeEvent(self, event: Any) -> None:
         super().resizeEvent(event)
-        self._schedule_fit()
+        if not self._disposed and isValid(self):
+            self._schedule_fit()
 
     def _schedule_fit(self) -> None:
-        if self._fit_pending:
+        if self._disposed or not isValid(self) or self._fit_timer.isActive():
             return
-        self._fit_pending = True
-        QTimer.singleShot(0, self._fit_layout)
+        self._fit_timer.start(0)
+
+    def cancel_pending(self) -> None:
+        self._disposed = True
+        self._fit_timer.stop()
 
     def _fit_layout(self) -> None:
-        self._fit_pending = False
+        if self._disposed or not isValid(self):
+            return
         try:
             engine = self.figure.get_layout_engine()
             if engine is None or engine.__class__.__name__ == "TightLayoutEngine":
                 self.figure.tight_layout(pad=1.15)
-        except Exception:
-            pass
-        self.draw_idle()
+            self.draw_idle()
+        except RuntimeError:
+            return
+        except Exception as exc:
+            LOGGER.debug("Layout do gráfico não ajustado: %s", exc)
 
 
 class HoverAnnotator:
@@ -74,6 +85,8 @@ class HoverAnnotator:
         self._cid = canvas.mpl_connect("motion_notify_event", self._on_move)
 
     def _on_move(self, event: Any) -> None:
+        if not isValid(self.canvas):
+            return
         if event.inaxes is not self.ax or event.x is None or event.y is None:
             if self.annotation.get_visible():
                 self.annotation.set_visible(False)
@@ -170,6 +183,7 @@ class PlotCard(Card):
     def clear_canvas(self) -> None:
         self._hover = None
         if self._canvas is not None:
+            self._canvas.cancel_pending()
             self._canvas.setParent(None)
             self._canvas.deleteLater()
             self._canvas = None

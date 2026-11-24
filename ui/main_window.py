@@ -579,11 +579,22 @@ class MainWindow(QMainWindow):
             self.manager.last_model = fit.to_model_record()
         except Exception:
             log_exception("guardar a última equação")
-        self.regression_tab.set_model(fit, diagnostics)
-        self.evaluation_tab.set_model(fit)
-        self.diagnostics_tab.set_model(fit, diagnostics)
-        self.explore_tab.set_evaluation(self.current_evaluation)
-        self.regression_tab.set_evaluation(self.current_evaluation)
+        try:
+            self.regression_tab.set_model(fit, diagnostics)
+            self.evaluation_tab.set_model(fit)
+            self.diagnostics_tab.set_model(fit, diagnostics)
+            self.explore_tab.set_evaluation(self.current_evaluation)
+            self.regression_tab.set_evaluation(self.current_evaluation)
+        except Exception as exc:
+            log_exception("atualizar telas após o cálculo do modelo",
+                          (type(exc), exc, exc.__traceback__))
+            if show_errors:
+                show_error(
+                    self,
+                    "A equação foi calculada, mas uma parte da tela não pôde ser atualizada. "
+                    "O detalhe técnico foi registrado em erros.log. Salve o projeto e abra novamente.",
+                    title="Modelo calculado com aviso",
+                )
         self._update_status()
         if mark_dirty:
             self.set_dirty(True)

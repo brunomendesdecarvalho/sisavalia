@@ -82,3 +82,28 @@ def test_tema_troca_fonte(tmp_path, monkeypatch):
         window.close()
         apply_theme(app, "Normal")
         app.processEvents()
+
+
+def test_janela_cabe_em_tela_pequena(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados3"))
+    app = QApplication.instance() or QApplication([])
+    apply_theme(app, "Normal")
+    from PySide6.QtWidgets import QScrollArea
+    from ui.main_window import MainWindow
+
+    window = MainWindow()
+    window._startup_done = True
+    window.show()
+    try:
+        window.open_example()
+        window.resize(1024, 600)
+        for _ in range(20):
+            app.processEvents()
+            time.sleep(0.005)
+        assert window.height() <= 620, window.size()
+        assert window.data_tab.findChild(QScrollArea) is not None
+        assert window.plugins_tab.findChild(QScrollArea) is not None
+    finally:
+        window.dirty = False
+        window.close()
+        app.processEvents()

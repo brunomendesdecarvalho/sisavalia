@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from core.data_manager import DataManager
 from core.plugin_manager import PluginInfo, PluginManager
@@ -27,7 +27,14 @@ class PluginsTab(QWidget):
         self.refresh()
 
     def _build_ui(self) -> None:
-        root = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        inner = QWidget()
+        root = QVBoxLayout(inner)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(10)
         title = QLabel("8. Plugins")
@@ -69,6 +76,8 @@ class PluginsTab(QWidget):
         hint.setWordWrap(True)
         card.add(hint)
         root.addWidget(card, 1)
+        scroll.setWidget(inner)
+        outer.addWidget(scroll)
         self.run_button.setEnabled(False)
         self.copy_button.setEnabled(False)
 

@@ -10,6 +10,7 @@ import traceback
 LOGGER = logging.getLogger(__name__)
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 APP_NAME = "SisAvalia"
 
@@ -63,7 +64,14 @@ def resource_path(relative: str) -> Path:
     return base / relative
 
 
-def log_exception(context: str = "") -> None:
+def log_exception(context: str = "", exc_info: Any = None) -> None:
+    """Grava o traceback real, inclusive quando chamado pelo excepthook do Qt.
+
+    O hook do Qt recebe a exceção fora do bloco ``except``; sem passar
+    ``exc_info``, ``traceback.print_exc()`` gravaria apenas "NoneType: None".
+    """
+    if exc_info is None:
+        exc_info = sys.exc_info()
     try:
         path = error_log_path()
         with path.open("a", encoding="utf-8") as fh:
@@ -72,7 +80,10 @@ def log_exception(context: str = "") -> None:
             if context:
                 fh.write(f" — {context}")
             fh.write("\n")
-            traceback.print_exc(file=fh)
+            if not exc_info or exc_info[1] is None:
+                fh.write("Sem exceção ativa no momento do registro.\n")
+            else:
+                traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], file=fh)
     except OSError:
         return
 

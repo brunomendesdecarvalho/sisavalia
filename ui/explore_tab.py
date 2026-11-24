@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from core import charting
+from core.app_paths import log_exception
 from core.data_manager import TEXT_TYPE, DataManager
 from core.formatting import format_number, is_missing
 from core.evaluation import EvaluationResult
@@ -229,8 +230,19 @@ class ExploreTab(QWidget):
     def refresh_plots(self) -> None:
         if self._loading:
             return
-        self._plot_scatter()
-        self._plot_hist()
+        for name, draw, card in (
+            ("dispersão", self._plot_scatter, self.scatter_plot),
+            ("histograma", self._plot_hist, self.hist_plot),
+        ):
+            try:
+                draw()
+            except Exception as exc:
+                log_exception(f"gráfico exploratório: {name}",
+                              (type(exc), exc, exc.__traceback__))
+                card.clear_plot(
+                    "Não foi possível desenhar este gráfico. "
+                    "O detalhe técnico foi registrado em erros.log."
+                )
 
     def _plot_scatter(self) -> None:
         x_name = self.scatter_x.currentText()

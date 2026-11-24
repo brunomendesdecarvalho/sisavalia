@@ -53,7 +53,7 @@ class ProjectIO:
         target.parent.mkdir(parents=True, exist_ok=True)
         state = manager.to_state()
         state["app"] = PROJECT_MAGIC
-        state["app_version"] = "1.0.1"
+        state["app_version"] = "1.0.2"
         state["saved_at"] = datetime.now().isoformat(timespec="seconds")
         if extra_state:
             state["ui"] = extra_state

@@ -555,7 +555,7 @@ def ask_save_changes(parent: Optional[QWidget], work_name: str = "") -> str:
 
 
 def report_unexpected_error(parent: Optional[QWidget], exc: BaseException, context: str = "") -> None:
-    log_exception(context or "erro na interface")
+    log_exception(context or "erro na interface", (type(exc), exc, exc.__traceback__))
     from core.app_paths import error_log_path
     show_error(
         parent,
@@ -576,8 +576,15 @@ def safe_call(parent: Optional[QWidget], func: Any, *args: Any, context: str = "
 
 
 def install_exception_hook(app: QApplication) -> None:
+    _dialog_open = {"value": False}
+
     def _hook(exc_type: Any, exc: Any, tb: Any) -> None:
-        log_exception("exceção não tratada")
+        log_exception("exceção não tratada", (exc_type, exc, tb))
+        # Duas exceções seguidas (por exemplo, dois gráficos) não devem abrir
+        # duas janelas idênticas sobrepostas.
+        if _dialog_open["value"]:
+            return
+        _dialog_open["value"] = True
         try:
             box = QMessageBox()
             box.setWindowTitle("Ocorreu um problema")
@@ -594,6 +601,8 @@ def install_exception_hook(app: QApplication) -> None:
             box.exec()
         except Exception:
             traceback.print_exception(exc_type, exc, tb)
+        finally:
+            _dialog_open["value"] = False
     app.setProperty("sisavalia_exception_hook", True)
     import sys
     sys.excepthook = _hook

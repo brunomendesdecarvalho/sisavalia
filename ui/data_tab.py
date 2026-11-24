@@ -52,7 +52,16 @@ class DataTab(QWidget):
 
     # ------------------------------------------------------------------ visual
     def _build_ui(self) -> None:
-        root = QVBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setAccessibleName("Conteúdo da aba Dados")
+        inner = QWidget()
+        root = QVBoxLayout(inner)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(10)
         header = QHBoxLayout()
@@ -76,7 +85,7 @@ class DataTab(QWidget):
         self.sample_note = Banner("", "warning")
         self.sample_note.setVisible(False)
         root.addWidget(self.sample_note)
-        actions1 = QHBoxLayout()
+        actions1 = QGridLayout()
         actions1.setSpacing(7)
         self.import_button = button("Importar planilha", "open")
         self.paste_button = button("Colar do Calc", "copy")
@@ -92,11 +101,12 @@ class DataTab(QWidget):
         self.add_column_button.clicked.connect(self.add_column)
         self.rename_column_button.clicked.connect(self.rename_column)
         self.delete_column_button.clicked.connect(self.delete_column)
-        for btn in (self.import_button, self.paste_button, self.add_row_button,
-                    self.delete_row_button, self.add_column_button,
-                    self.rename_column_button, self.delete_column_button):
-            actions1.addWidget(btn)
-        actions1.addStretch(1)
+        for index, btn in enumerate((
+            self.import_button, self.paste_button, self.add_row_button,
+            self.delete_row_button, self.add_column_button,
+            self.rename_column_button, self.delete_column_button,
+        )):
+            actions1.addWidget(btn, index // 4, index % 4)
         root.addLayout(actions1)
         actions2 = QHBoxLayout()
         actions2.setSpacing(7)
@@ -167,12 +177,16 @@ class DataTab(QWidget):
         splitter.setStretchFactor(1, 2)
         splitter.setSizes([800, 570])
         root.addWidget(splitter, 1)
+        scroll.setWidget(inner)
+        outer.addWidget(scroll)
 
     def _build_variables_panel(self) -> QWidget:
         panel = Card(title="Variáveis do modelo",
                      subtitle="Texto não entra na conta. Marque uma coluna de texto como rótulo para identificar os imóveis.")
         form = QFormLayout()
         form.setSpacing(8)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.y_combo = QComboBox()
         self.y_combo.setToolTip("Variável dependente: é o valor que a equação vai explicar.")
         self.y_combo.setAccessibleName("Variável dependente Y")

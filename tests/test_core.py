@@ -19,6 +19,7 @@ from core.nbr14653 import compute_nbr, final_grade, item2, item5, item6, provisi
 from core.project_io import ProjectIO
 from core.regression_engine import RegressionEngine
 from core.report_generator import make_context, export_spreadsheet, generate_docx
+from core.app_paths import error_log_path, log_exception
 from core.self_check import check_installation
 from core.simulation import descriptive, simulate
 
@@ -361,3 +362,15 @@ def test_coluna_calculada_e_ativas(example):
     assert example.n_active == original - 2
     assert example.undo() is True
     assert example.n_active == original
+
+
+def test_log_exception_registra_traceback(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados_log"))
+    try:
+        raise RuntimeError("falha controlada do teste")
+    except RuntimeError as exc:
+        log_exception("teste de log", (type(exc), exc, exc.__traceback__))
+    texto = error_log_path().read_text(encoding="utf-8")
+    assert "teste de log" in texto
+    assert "RuntimeError: falha controlada do teste" in texto
+    assert "Traceback" in texto

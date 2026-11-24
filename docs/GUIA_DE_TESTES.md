@@ -2,7 +2,7 @@
 
 **Público:** avaliador, engenheiro ou técnico que conhece avaliação de imóveis, mas não precisa saber programar.  
 **Objetivo:** verificar se o SisAvalia entrega o fluxo de trabalho de uma avaliação — importar, explorar, modelar, avaliar e exportar — com resultados coerentes e em linguagem compreensível.  
-**Versão:** 1.0.1
+**Versão:** 1.0.2
 **Data de referência:** novembro de 2026
 
 > **Dados de exemplo. Não use em laudo.** A amostra que acompanha o programa é fictícia e serve apenas para este roteiro.
@@ -359,6 +359,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 - Todos os números usam vírgula decimal e ponto de milhar.
 - As datas usam dd/mm/aaaa.
 - Os gráficos se ajustam ao cartão sem cortar rótulos.
+- Em 1024 × 600 e 1366 × 768, a aba Dados rola e os campos de Y, transformação e rótulo ficam legíveis, sem sobreposição.
 - A navegação por teclado funciona.
 
 **Critério de aceite:** não há número em formato americano e nenhum texto/ícone ilegível no tema escuro.  

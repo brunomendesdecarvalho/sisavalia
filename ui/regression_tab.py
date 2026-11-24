@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from core import charting
+from core.app_paths import log_exception
 from core.data_manager import DataManager
 from core.diagnostics import DiagnosticsResult
 from core.evaluation import EvaluationResult

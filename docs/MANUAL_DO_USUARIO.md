@@ -312,11 +312,19 @@ Ao terminar, o programa oferece **Abrir arquivo agora**.
 
 Se você recebeu o `.deb` ou o AppImage, **não precisa instalar Python**. O programa já vem com tudo o que usa. O SisAvalia verifica os componentes ao abrir e avisa se o pacote estiver incompleto.
 
-O AppImage 1.0.1 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
+O AppImage 1.0.2 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
 
 O programa não baixa nem instala bibliotecas sozinho no seu computador. Isso evita pedir senha, gastar internet sem aviso ou mexer no Python do sistema. Se aparecer “Instalação incompleta”, feche e instale novamente o pacote.
 
-## 14. Limites do programa
+## 14. Telas pequenas e tema
+
+Em notebooks com tela de **1366 × 768** ou menor, a aba **1. Dados** passa a ter rolagem vertical. Use a barra de rolagem à direita para chegar ao painel **Variáveis do modelo** e à lista de variáveis. Os campos não ficam mais sobrepostos.
+
+O menu superior e as abas continuam acessíveis. Se a fonte estiver em **Grande** ou **Muito Grande**, a janela pode precisar de mais largura; nesse caso, aumente a janela ou volte para **Normal**.
+
+![Aba Dados em 1366 × 768, com rolagem e sem sobreposição](telas/tela_baixa_resolucao.png)
+
+## 15. Limites do programa
 
 O SisAvalia faz **OLS** (mínimos quadrados ordinários) com uma equação linear. Não faz regressão não linear, DEA, redes neurais, Box-Cox, PRESS, coeficiente forçado, homogeneização por fatores, senha no arquivo nem máxima verossimilhança separada.
 
