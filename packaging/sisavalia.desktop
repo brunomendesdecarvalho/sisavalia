@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=SisAvalia
+GenericName=Avaliação de imóveis
+Comment=Análise estatística, regressão e avaliação de imóveis
+Exec=/opt/sisavalia/SisAvalia %f
+TryExec=/opt/sisavalia/SisAvalia
+Icon=sisavalia
+Terminal=false
+StartupNotify=true
+StartupWMClass=SisAvalia
+Categories=Education;
+Keywords=avaliação;imóveis;regressão;estatística;NBR 14653;sisdea;
+MimeType=application/x-sisavalia;

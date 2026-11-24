@@ -1,0 +1,1 @@
+"""Plugins opcionais do SisAvalia."""

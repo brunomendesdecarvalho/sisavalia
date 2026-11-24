@@ -1,0 +1,21 @@
+Id;Imovel;Endereco;Bairro;Area_m2;Padrao;Quartos;Idade_anos;Valor_total;Valor_unitario;Fonte
+1;Apartamento 01;Rua das Acácias, 100 - Apto 101;Centro;52,00;1;1;18;475.000,00;9.140,00;Imobiliária Central
+2;Apartamento 02;Rua das Acácias, 107 - Apto 102;Jardim América;58,00;1;1;15;520.000,00;8.960,00;Anúncio online
+3;Apartamento 03;Rua das Acácias, 114 - Apto 103;Vila Nova;62,00;1;1;12;590.000,00;9.520,00;Imobiliária Central
+4;Apartamento 04;Rua das Acácias, 121 - Apto 104;Centro;68,00;2;2;20;659.000,00;9.690,00;Anúncio online
+5;Apartamento 05;Rua das Acácias, 128 - Apto 105;Jardim América;72,00;2;2;16;670.000,00;9.300,00;Imobiliária Central
+6;Apartamento 06;Rua das Acácias, 135 - Apto 106;Vila Nova;78,00;2;2;10;766.000,00;9.820,00;Anúncio online
+7;Apartamento 07;Rua das Acácias, 142 - Apto 107;Centro;82,00;2;2;8;837.000,00;10.210,00;Imobiliária Central
+8;Apartamento 08;Rua das Acácias, 149 - Apto 108;Jardim América;88,00;2;2;14;833.000,00;9.470,00;Anúncio online
+9;Apartamento 09;Rua das Acácias, 156 - Apto 109;Vila Nova;92,00;3;2;6;1.018.000,00;11.070,00;Imobiliária Central
+10;Apartamento 10;Rua das Acácias, 163 - Apto 110;Centro;98,00;3;2;5;1.061.000,00;10.830,00;Anúncio online
+11;Apartamento 11;Rua das Acácias, 170 - Apto 111;Jardim América;105,00;2;3;12;999.000,00;9.510,00;Imobiliária Central
+12;Apartamento 12;Rua das Acácias, 177 - Apto 112;Vila Nova;112,00;2;3;9;1.073.000,00;9.580,00;Anúncio online
+13;Apartamento 13;Rua das Acácias, 184 - Apto 113;Centro;118,00;3;3;7;1.228.000,00;10.410,00;Imobiliária Central
+14;Apartamento 14;Rua das Acácias, 191 - Apto 114;Jardim América;125,00;3;3;4;1.341.000,00;10.730,00;Anúncio online
+15;Apartamento 15;Rua das Acácias, 198 - Apto 115;Vila Nova;135,00;3;3;11;1.318.000,00;9.760,00;Imobiliária Central
+16;Apartamento 16;Rua das Acácias, 205 - Apto 116;Centro;145,00;3;3;3;1.438.000,00;9.920,00;Anúncio online
+17;Apartamento 17;Rua das Acácias, 212 - Apto 117;Jardim América;155,00;3;4;6;1.505.000,00;9.710,00;Imobiliária Central
+18;Apartamento 18;Rua das Acácias, 219 - Apto 118;Vila Nova;170,00;2;4;2;1.438.000,00;8.460,00;Anúncio online
+19;Apartamento 19;Rua das Acácias, 226 - Apto 119;Centro;190,00;3;4;1;1.794.000,00;9.440,00;Imobiliária Central
+20;Apartamento 20;Rua das Acácias, 233 - Apto 120;Jardim América;210,00;3;4;0;1.861.000,00;8.860,00;Anúncio online

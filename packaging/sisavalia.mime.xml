@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-sisavalia">
+    <comment>Projeto do SisAvalia</comment>
+    <comment xml:lang="pt_BR">Projeto do SisAvalia</comment>
+    <sub-class-of type="application/zip"/>
+    <glob pattern="*.sisproj"/>
+    <icon name="sisavalia"/>
+  </mime-type>
+</mime-info>
