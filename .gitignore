@@ -43,3 +43,16 @@ tmp_*
 
 packaging/tools/
 *.AppImage
+
+# Ambientes temporários usados para gerar o AppImage compatível
+.debian10root/
+.ubuntu2004/
+.uvpython311/
+.buildvenv311/
+.wheelcheck/
+.ubuntudebs/
+.debian10*.tar
+.rootfs.tar.gz
+.tmp/
+.pipcache/
+.uvcache/

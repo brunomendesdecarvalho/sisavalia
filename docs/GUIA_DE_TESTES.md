@@ -2,7 +2,7 @@
 
 **Público:** avaliador, engenheiro ou técnico que conhece avaliação de imóveis, mas não precisa saber programar.  
 **Objetivo:** verificar se o SisAvalia entrega o fluxo de trabalho de uma avaliação — importar, explorar, modelar, avaliar e exportar — com resultados coerentes e em linguagem compreensível.  
-**Versão:** 1.0.0  
+**Versão:** 1.0.1
 **Data de referência:** novembro de 2026
 
 > **Dados de exemplo. Não use em laudo.** A amostra que acompanha o programa é fictícia e serve apenas para este roteiro.

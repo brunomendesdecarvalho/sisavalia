@@ -78,6 +78,8 @@ A aplicação usa a paleta clara fixa (`light_palette`) e o estilo Fusion. Isso 
 
 `packaging/build_pyinstaller.sh` concentra a compilação PyInstaller. `build_deb.sh` monta o `.deb` para Mint/Ubuntu e `build_appimage.sh` monta um AppImage para Fedora e outras distribuições. Os dois pacotes incluem Python, bibliotecas e recursos. O aplicativo verifica a integridade dos módulos e dos recursos ao iniciar (`core/self_check.py`) e aceita `--verificar-instalacao`.
 
+Para o AppImage ser portátil, o PySide6 está fixado em 6.9.3 (glibc 2.28) e o build precisa ocorrer em ambiente com glibc ≤ 2.28. `packaging/check_glibc.py` varre todos os ELF do pacote e interrompe a compilação se encontrar `GLIBC_ABI_GNU2_TLS` ou versão superior à meta. O AppImage 1.0.1 foi compilado no Debian 10 e verificado nessa mesma base.
+
 ### Relatórios
 
 Os gráficos são figuras Matplotlib em memória, salvas em PNG a 220 dpi. O PDF é montado com `QTextDocument` e impresso com `QPrinter`; imagens entram como recursos em memória. O DOCX usa `python-docx`. O resumo tenta larguras/fontes progressivamente menores até caber em uma página no PDF.

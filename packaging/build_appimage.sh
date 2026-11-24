@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# Gera um AppImage do SisAvalia. Funciona em distribuições que não usam .deb,
-# como Fedora, desde que a compilação seja feita na própria distribuição.
+# Gera um AppImage portátil do SisAvalia.
+# Para compatibilidade ampla, compile em ambiente com glibc <= 2.28
+# (por exemplo, Debian 10) e Python 3.11/3.12. O script verifica a glibc.
 set -euo pipefail
 
 APP_NAME="SisAvalia"
-VERSION="${VERSION:-1.0.0}"
+VERSION="${VERSION:-1.0.1}"
 ARCH="${ARCH:-x86_64}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> Compilando o programa"
-"$ROOT/packaging/build_pyinstaller.sh"
+if [ "${SISAVALIA_SKIP_BUILD:-0}" = "1" ]; then
+    if [ ! -x "$ROOT/dist/$APP_NAME/$APP_NAME" ]; then
+        echo "ERRO: SISAVALIA_SKIP_BUILD=1, mas dist/$APP_NAME/$APP_NAME não existe." >&2
+        exit 1
+    fi
+    echo "==> Usando o pacote PyInstaller já compilado em dist/$APP_NAME"
+else
+    echo "==> Compilando o programa"
+    "$ROOT/packaging/build_pyinstaller.sh"
+fi
+
+echo "==> Verificando compatibilidade de glibc para AppImage portátil"
+python3 "$ROOT/packaging/check_glibc.py" "$ROOT/dist/$APP_NAME" --target "${SISAVALIA_GLIBC_TARGET:-2.28}"
 
 APPDIR="$ROOT/build/SisAvalia.AppDir"
 rm -rf "$APPDIR"

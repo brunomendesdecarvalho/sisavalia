@@ -13,6 +13,9 @@ from .app_paths import resource_path
 
 REQUIRED_MODULES = (
     ("PySide6", "PySide6"),
+    ("PySide6.QtGui", "PySide6/QtGui"),
+    ("PySide6.QtWidgets", "PySide6/QtWidgets"),
+    ("PySide6.QtPrintSupport", "PySide6/QtPrintSupport"),
     ("numpy", "numpy"),
     ("pandas", "pandas"),
     ("scipy", "scipy"),

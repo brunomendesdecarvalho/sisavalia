@@ -5,7 +5,7 @@
 ### O que você precisa
 
 - Linux Mint 21 ou 22, 64 bits.
-- O arquivo `sisavalia_1.0.0_amd64.deb` (ou a versão mais nova).
+- O arquivo `sisavalia_1.0.1_amd64.deb` (ou a versão mais nova).
 - A senha do computador, caso o Instalador de Pacotes peça.
 
 ### Passo 1 — Baixar o arquivo
@@ -15,7 +15,7 @@ Baixe o `.deb` e deixe na pasta **Downloads**.
 ### Passo 2 — Abrir com o Instalador de Pacotes
 
 1. Abra a pasta **Downloads**.
-2. Clique **duas vezes** no arquivo `sisavalia_1.0.0_amd64.deb`.
+2. Clique **duas vezes** no arquivo `sisavalia_1.0.1_amd64.deb`.
 3. O **Instalador de Pacotes** do Mint abre mostrando o nome **SisAvalia**.
 4. Clique em **Instalar**.
 5. Se aparecer um pedido de senha, digite a senha do seu computador e confirme.
@@ -33,7 +33,9 @@ Na primeira vez, o programa abre a tela inicial. Use **Abrir exemplo** para apre
 
 ## AppImage — Fedora e outras distribuições
 
-1. Baixe `SisAvalia-1.0.0-x86_64.AppImage`.
+**Compatibilidade:** o AppImage 1.0.1 exige **glibc 2.28 ou superior**. Isso inclui Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+ e Fedora moderno. Ubuntu 18.04 e Mint 19 (glibc 2.27) não são compatíveis.
+
+1. Baixe `SisAvalia-1.0.1-x86_64.AppImage`.
 2. Abra a pasta Downloads, clique com o botão direito no arquivo → **Propriedades** → **Permissões** → marque **Permitir execução**.
 3. Clique duas vezes no arquivo.
 
@@ -62,13 +64,15 @@ Menu do Mint → **Central de Programas** (ou Instalador de Pacotes) → procure
 
 ### Preparar o ambiente
 
-Na pasta do projeto:
+Use **Python 3.11 ou 3.12** e as versões fixadas em `requirements-dev.txt`:
 
 ```bash
-python3 -m venv --system-site-packages .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
 ```
+
+O PySide6 está fixado em 6.9.3 porque a versão 6.10+ exige glibc 2.34. Para gerar o AppImage portátil, compile em um ambiente com glibc ≤ 2.28 (Debian 10, por exemplo) e use PySide6 6.9.3.
 
 ### Rodar sem instalar
 
@@ -95,12 +99,15 @@ python3 main.py meu_projeto.sisproj
 ./packaging/build_appimage.sh
 ```
 
-O AppImage final fica em `dist/SisAvalia-1.0.0-x86_64.AppImage`. O script compila com PyInstaller, monta o AppDir, gera o ícone PNG e usa o `appimagetool` (baixado automaticamente na primeira vez).
+O AppImage final fica em `dist/SisAvalia-1.0.1-x86_64.AppImage`. O script compila com PyInstaller, monta o AppDir, gera o ícone PNG e usa o `appimagetool` (baixado automaticamente na primeira vez).
 
-> **Importante:** gere o `.deb` em uma máquina Linux Mint 21/22 ou Ubuntu 22.04+ e o AppImage na distribuição em que ele será usado. O PyInstaller usa bibliotecas do sistema de compilação; um pacote feito em uma distribuição muito nova pode não abrir em outra mais antiga.
+Antes de montar o AppImage, `packaging/check_glibc.py` verifica todos os binários do pacote. Se algum exigir glibc acima de 2.28 ou referenciar `GLIBC_ABI_GNU2_TLS`, a compilação é interrompida com instrução para usar um ambiente Debian 10/Ubuntu 20.04. Isso evita publicar um AppImage que só funciona no computador de quem compilou.
+
+> **Importante:** gere o `.deb` na máquina Linux Mint/Ubuntu em que ele será usado. Para o AppImage portátil, use um ambiente com glibc ≤ 2.28 (Debian 10, por exemplo). O PyInstaller usa bibliotecas do sistema de compilação; um pacote feito em uma distribuição muito nova não abre em outra mais antiga.
 
 O script:
 
+- confere se o ambiente usa Python 3.11/3.12 e PySide6 6.9.3;
 - compila com `PyInstaller --windowed --onedir`;
 - inclui `ui/styles.qss`, ícones, plugins e a pasta `exemplos`;
 - monta a árvore do pacote com `dpkg-deb`;
@@ -114,7 +121,7 @@ O script:
 O arquivo final fica em:
 
 ```text
-dist/sisavalia_1.0.0_amd64.deb
+dist/sisavalia_1.0.1_amd64.deb
 ```
 
 Para gerar com outra versão:
