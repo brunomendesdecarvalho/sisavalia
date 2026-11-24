@@ -106,22 +106,35 @@ def _metadata_rows(manager: DataManager) -> list[tuple[str, str]]:
     meta = manager.metadata
     return [
         ("Autor", str(meta.get("author", "") or "Não informado")),
+        ("Responsável técnico", str(meta.get("technical_name", "") or "Não informado")),
+        ("CREA/CAU", str(meta.get("technical_registry", "") or "Não informado")),
+        ("Solicitante", str(meta.get("requester", "") or "Não informado")),
         ("Trabalho", str(meta.get("work_name", "") or "Sem nome")),
-        ("Data", format_date_br(meta.get("date", ""))),
+        ("Finalidade", str(meta.get("purpose", "") or "Não informada")),
+        ("Objetivo", str(meta.get("objective", "") or "Não informado")),
+        ("Data do trabalho", format_date_br(meta.get("date", ""))),
+        ("Data de referência", format_date_br(meta.get("reference_date", ""))),
         ("Município", str(meta.get("city", "") or "Não informado")),
         ("Tipologia", str(meta.get("tipologia", "") or "Não informada")),
-        ("Descrição", str(meta.get("description", "") or "—")),
+        ("Identificação / diagnóstico", str(meta.get("description", "") or "—")),
+        ("Pressupostos e ressalvas", str(meta.get("assumptions", "") or "—")),
+        ("Condições limitantes", str(meta.get("limitations", "") or "—")),
+        ("Vistoria", str(meta.get("inspection", "") or "Não informada")),
     ]
 
 
-def _sample_rows(manager: DataManager, fit: FitResult) -> list[tuple[str, str, str, str]]:
-    rows: list[tuple[str, str, str, str]] = [
+def _sample_rows(manager: DataManager, fit: FitResult) -> list[tuple[str, ...]]:
+    rows: list[tuple[str, ...]] = [
         ("Y", manager.y_column or "—", manager.column_types.get(manager.y_column or "", "—"),
-         manager.y_transform),
+         manager.y_transform, ""),
     ]
     for spec in manager.x_specs(True):
         sign = {1: "Subir", -1: "Descer", 0: "Tanto faz"}.get(int(spec.get("expected_sign", 0)), "Tanto faz")
-        rows.append(("X", spec["name"], spec.get("type", "—"), f"{spec['transformation']} (sinal: {sign})"))
+        rows.append((
+            "X", spec["name"], spec.get("type", "—"),
+            f"{spec['transformation']} (sinal: {sign})",
+            str(spec.get("description", "") or "—"),
+        ))
     return rows
 
 
@@ -266,6 +279,7 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     <p class="small"><b>Imóveis na conta:</b> {manager.n_active} &nbsp; <b>Desligados:</b> {manager.n_inactive} &nbsp; <b>Gerado em:</b> {_h(context.generated_at)}</p>
     {sample_html}
     <h2>Equação</h2><div class="equation">{_h(fit.equation)}</div>
+    <p class="small"><b>Na escala original de Y:</b> {_h(fit.equation_original)}</p>
     <p><b>R²:</b> {_n(fit.rsquared, 4)} &nbsp; <b>R² ajustado:</b> {_n(fit.rsquared_adj, 4)} &nbsp;
     <b>Erro padrão:</b> {_n(fit.scale, 4)}</p>
     <h2>Resultado da avaliação</h2>
@@ -280,15 +294,19 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
 
 def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     manager = context.manager
+    meta = manager.metadata
     fit = context.fit
     diag = context.diagnostics
     assert fit is not None and diag is not None
     equation = _h(fit.equation)
+    equation_original = _h(fit.equation_original)
     log_note = _log_note(manager)
     note_html = f'<p class="note">{_h(log_note)}</p>' if log_note else ""
     sample_rows = _sample_rows(manager, fit)
-    sample_table = _table_html(["Papel", "Variável", "Tipo", "Transformação / sinal"], sample_rows,
-                               aligns=["center", "left", "left", "left"])
+    sample_table = _table_html(
+        ["Papel", "Variável", "Tipo", "Transformação / sinal", "Descrição / critério"],
+        sample_rows, aligns=["center", "left", "left", "left", "left"],
+    )
     anova_rows = [(
         row["Fonte"], _n(row["SQ"], 4), str(row["GL"]), _n(row["QM"], 4),
         _n(row["F"], 3), _p(row["p-valor"]),
@@ -308,10 +326,12 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
         proj_rows = [
             ("Estimativa pontual", _n(result.prediction.point, 2)),
             ("IC 80% da média", f"{_n(result.prediction.ci_low, 2)} a {_n(result.prediction.ci_high, 2)}"),
+            ("IP 80% (preço)", f"{_n(result.prediction.pi_low, 2)} a {_n(result.prediction.pi_high, 2)}"),
             ("Amplitude do IC", _percent(result.prediction.amplitude_pct, 1)),
             ("Grau de precisão", result.prediction.precision_degree),
-            ("Intervalo de predição 80% (não entra no grau)",
-             f"{_n(result.prediction.pi_low, 2)} a {_n(result.prediction.pi_high, 2)}"),
+            ("Intervalo usado no valor adotado", result.interval_label),
+            ("Intervalo admissível (IC/IP ∩ arbítrio)",
+             f"{_n(result.display_admissible_low, 2)} a {_n(result.display_admissible_high, 2)}"),
             ("Campo de arbítrio (±15%)",
              f"{_n(result.arbitrio_low, 2)} a {_n(result.arbitrio_high, 2)}"),
             ("Valor adotado", _n(result.adopted, 2)),
@@ -320,6 +340,16 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
         nbr_rows = _nbr_item_rows(result.nbr)
         nbr_table = _table_html(["Item", "O que verifica", "Grau", "Pontos", "Explicação"], nbr_rows,
                                 aligns=["center", "left", "center", "center", "left"])
+        elast_rows = []
+        try:
+            for row in fit.elasticity_rows(result.values):
+                elast_rows.append((row.get("display", ""), row.get("kind", ""), row.get("text", "")))
+        except Exception:
+            elast_rows = []
+        elasticity_table = _table_html(
+            ["Variável", "Tipo", "Elasticidade / efeito no ponto"],
+            elast_rows, aligns=["left", "center", "left"],
+        ) if elast_rows else "<p>Não foi possível calcular as elasticidades.</p>"
         extra_rows = _extrapolation_rows(result)
         extra_table = _table_html(
             ["Variável", "Avaliando", "Amostra ativa", "Situação", "Aceitável?", "Afastamento"],
@@ -346,6 +376,7 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
         <b>Grau de precisão:</b> {_h(result.nbr.precision_degree)}</p>
         {cap}
         <h3>Fundamentação</h3>{nbr_table}
+        <h3>Elasticidades no ponto de estimação</h3>{elasticity_table}
         <h3>Extrapolação por variável</h3>{extra_table}
         <p class="small">{_h(extra_rules)}</p>
         </div>""")
@@ -412,7 +443,10 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     <b>Usados no modelo:</b> {fit.n_obs} &nbsp; <b>Fora por vazio:</b> {len(fit.dropped_positions)}</p>
     {sample_table}
     <h2>2. Equação ajustada</h2>
+    <p><b>Forma estimada (Y transformado):</b></p>
     <div class="equation">{equation}</div>
+    <p><b>Forma não transformada da variável dependente (para o laudo):</b></p>
+    <div class="equation">{equation_original}</div>
     <p><b>R²:</b> {_n(fit.rsquared, 4)} &nbsp; <b>R² ajustado:</b> {_n(fit.rsquared_adj, 4)} &nbsp;
     <b>Erro padrão dos resíduos:</b> {_n(fit.scale, 4)}</p>
     {note_html}
@@ -433,6 +467,12 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     <div style="page-break-before: always;"></div>
     <h2>8. Gráficos</h2>{image_html}
     <p class="note">{_h(text_about_suggestion)}</p>
+    <h2>Responsável técnico</h2>
+    <p><b>Nome:</b> {_h(meta.get('technical_name', '') or 'Não informado')} &nbsp;
+    <b>CREA/CAU:</b> {_h(meta.get('technical_registry', '') or 'Não informado')}</p>
+    <p><b>{_h(meta.get('signature_city', '') or meta.get('city', '') or 'Local')}</b>,
+    {_h(format_date_br(meta.get('reference_date', '') or meta.get('date', '')))}</p>
+    <p>__________________________________________________________<br/>Assinatura do responsável técnico</p>
     <p class="subtitle">Relatório gerado pelo SisAvalia em {_h(context.generated_at)}.</p>
     </body></html>"""
 
@@ -590,6 +630,9 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
             p = doc.add_paragraph(fit.equation)
             for run in p.runs:
                 run.font.size = Pt(9.5)
+            p = doc.add_paragraph("Na escala original de Y: " + fit.equation_original)
+            for run in p.runs:
+                run.font.size = Pt(9)
             small = doc.add_paragraph(
                 f"R²: {_n(fit.rsquared, 4)}    R² ajustado: {_n(fit.rsquared_adj, 4)}    "
                 f"Erro padrão: {_n(fit.scale, 4)}"
@@ -637,10 +680,19 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
             f"Imóveis na conta: {context.manager.n_active}    Desligados: {context.manager.n_inactive}    "
             f"Usados no modelo: {fit.n_obs}    Fora por vazio: {len(fit.dropped_positions)}"
         )
-        _docx_table(doc, ["Papel", "Variável", "Tipo", "Transformação / sinal"],
-                    _sample_rows(context.manager, fit), widths=[1.5, 4.5, 3.5, 7.0])
+        _docx_table(
+            doc,
+            ["Papel", "Variável", "Tipo", "Transformação / sinal", "Descrição / critério"],
+            _sample_rows(context.manager, fit),
+            widths=[1.3, 3.3, 3.0, 4.2, 4.8],
+        )
         doc.add_heading("Equação ajustada", level=1)
+        doc.add_paragraph("Forma estimada (Y transformado):")
         p = doc.add_paragraph(fit.equation)
+        for run in p.runs:
+            run.font.size = Pt(10)
+        doc.add_paragraph("Forma não transformada da variável dependente (para o laudo):")
+        p = doc.add_paragraph(fit.equation_original)
         for run in p.runs:
             run.font.size = Pt(10)
         doc.add_paragraph(
@@ -671,10 +723,12 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
             proj_rows = [
                 ("Estimativa pontual", _n(result.prediction.point, 2)),
                 ("IC 80% da média", f"{_n(result.prediction.ci_low, 2)} a {_n(result.prediction.ci_high, 2)}"),
+                ("IP 80% (preço)", f"{_n(result.prediction.pi_low, 2)} a {_n(result.prediction.pi_high, 2)}"),
                 ("Amplitude do IC", _percent(result.prediction.amplitude_pct, 1)),
                 ("Grau de precisão", result.prediction.precision_degree),
-                ("Intervalo de predição 80% (não entra no grau)",
-                 f"{_n(result.prediction.pi_low, 2)} a {_n(result.prediction.pi_high, 2)}"),
+                ("Intervalo usado no valor adotado", result.interval_label),
+                ("Intervalo admissível (IC/IP ∩ arbítrio)",
+                 f"{_n(result.display_admissible_low, 2)} a {_n(result.display_admissible_high, 2)}"),
                 ("Campo de arbítrio (±15%)",
                  f"{_n(result.arbitrio_low, 2)} a {_n(result.arbitrio_high, 2)}"),
                 ("Valor adotado", _n(result.adopted, 2)),
@@ -689,6 +743,15 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
                 doc.add_paragraph(result.nbr.cap_explanation)
             _docx_table(doc, ["Item", "O que verifica", "Grau", "Pontos", "Explicação"],
                         _nbr_item_rows(result.nbr), widths=[1.2, 3.6, 1.5, 1.4, 8.3])
+            try:
+                elast = [(r.get("display", ""), r.get("kind", ""), r.get("text", ""))
+                         for r in fit.elasticity_rows(result.values)]
+            except Exception:
+                elast = []
+            if elast:
+                doc.add_heading("Elasticidades no ponto", level=2)
+                _docx_table(doc, ["Variável", "Tipo", "Elasticidade / efeito"],
+                            elast, widths=[4.0, 3.0, 9.0])
             _docx_table(doc, ["Variável", "Avaliando", "Amostra ativa", "Situação", "Aceitável?", "Afastamento"],
                         _extrapolation_rows(result), widths=[3.2, 2.2, 3.4, 2.0, 2.0, 3.2])
             rules = " ".join(
@@ -710,6 +773,19 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
                     widths=[8.0, 8.0])
         corr_pairs = [(a, b, _n(r, 3)) for a, b, r in diag.high_correlations] or [("Nenhum par acima de 0,80", "—", "—")]
         _docx_table(doc, ["Variável A", "Variável B", "r"], corr_pairs, widths=[6.0, 6.0, 4.0])
+        doc.add_page_break()
+        doc.add_heading("Responsável técnico", level=1)
+        meta = context.manager.metadata
+        doc.add_paragraph(
+            f"Nome: {meta.get('technical_name', '') or 'Não informado'}    "
+            f"CREA/CAU: {meta.get('technical_registry', '') or 'Não informado'}"
+        )
+        doc.add_paragraph(
+            f"{meta.get('signature_city', '') or meta.get('city', '') or 'Local'}, "
+            f"{format_date_br(meta.get('reference_date', '') or meta.get('date', ''))}"
+        )
+        doc.add_paragraph("__________________________________________________________")
+        doc.add_paragraph("Assinatura do responsável técnico")
         doc.add_page_break()
         doc.add_heading("Tabela de resíduos", level=1)
         residual_values = []

@@ -57,6 +57,9 @@ class DiagnosticsTab(QWidget):
         root.addWidget(subtitle)
         self.top_banner = Banner("Calcule o modelo na aba 3 para ver os diagnósticos.", "info")
         root.addWidget(self.top_banner)
+        self.category_banner = Banner("", "warning")
+        self.category_banner.setVisible(False)
+        root.addWidget(self.category_banner)
         premises_card = Card(title="Semáforo das premissas",
                              subtitle="Verde é tranquilizador, amarelo pede conferência e vermelho pede atenção.")
         self.assumption_rows_layout = QVBoxLayout()
@@ -168,6 +171,13 @@ class DiagnosticsTab(QWidget):
     def set_model(self, fit: Optional[FitResult], diagnostics: Optional[DiagnosticsResult]) -> None:
         self.fit = fit
         self.diagnostics = diagnostics
+        issues = self.manager.micronumerosity_issues()
+        if issues:
+            self.category_banner.setText("\n".join("• " + issue["text"] for issue in issues))
+            self.category_banner.set_role("warning")
+            self.category_banner.setVisible(True)
+        else:
+            self.category_banner.setVisible(False)
         if fit is None or diagnostics is None:
             self.top_banner.setText("Calcule o modelo na aba 3 para ver os diagnósticos.")
             self.top_banner.set_role("info")
@@ -245,7 +255,10 @@ class DiagnosticsTab(QWidget):
         self.shapiro_label.setText(diag.shapiro_text + " Não muda a cor das faixas.")
         vif_parts = [f"{name} = {format_number(value, 2) if math.isfinite(value) else 'muito alto'}"
                      for name, value in diag.vif.items()]
-        self.vif_label.setText("VIF (acima de 10 é alerta): " + ("; ".join(vif_parts) if vif_parts else "—"))
+        self.vif_label.setText(
+            "VIF (amarelo acima de 5; vermelho acima de 10): "
+            + ("; ".join(vif_parts) if vif_parts else "—")
+        )
         if diag.high_correlations:
             pairs = "; ".join(f"{a} × {b} = {format_number(r, 3)}" for a, b, r in diag.high_correlations)
             self.corr_label.setText("Pares de X com |r| > 0,80: " + pairs)

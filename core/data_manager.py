@@ -16,7 +16,8 @@ import pandas as pd
 
 from .formatting import format_date_br, format_number, is_missing, parse_number, safe_str
 
-NUMERIC_TYPES = ("Quantitativa", "Dicotômica", "Código alocado", "Proxy")
+NUMERIC_TYPES = ("Quantitativa", "Dicotômica", "Código alocado", "Código ajustado", "Proxy")
+CATEGORICAL_TYPES = ("Dicotômica", "Código alocado", "Código ajustado")
 TEXT_TYPE = "Texto"
 COLUMN_TYPES = NUMERIC_TYPES + (TEXT_TYPE,)
 TRANSFORMS = ("x", "ln(x)", "1/x", "x²", "√x")
@@ -143,10 +144,20 @@ class DataManager:
             "author": "",
             "work_name": "Trabalho sem nome",
             "date": date.today().strftime("%d/%m/%Y"),
+            "reference_date": date.today().strftime("%d/%m/%Y"),
             "city": "",
             "tipologia": "Apartamento",
             "description": "",
             "sample_note": "",
+            "requester": "",
+            "purpose": "",
+            "objective": "",
+            "assumptions": "",
+            "limitations": "",
+            "technical_name": "",
+            "technical_registry": "",
+            "signature_city": "",
+            "inspection": "",
         }
 
     def set_metadata(self, metadata: dict[str, Any]) -> None:
@@ -467,11 +478,12 @@ class DataManager:
                 "selected": len(chosen) < 4,
                 "transformation": transform,
                 "expected_sign": sign,
+                "description": "",
             }
             chosen.append(col)
         for col in self.df.columns:
             if col not in self.x_config:
-                self.x_config[col] = {"selected": False, "transformation": "x", "expected_sign": 0}
+                self.x_config[col] = {"selected": False, "transformation": "x", "expected_sign": 0, "description": ""}
         self._choose_types_heuristic()
         if self.y_column and self.df[self.y_column].dropna().gt(0).all() and len(self.df):
             self.y_transform = "ln(x)"
@@ -531,6 +543,7 @@ class DataManager:
                 "selected": col in wanted,
                 "transformation": transform,
                 "expected_sign": sign,
+                "description": already.get("description", ""),
             }
         self.last_model = None
         self.saved_equations = []
@@ -554,20 +567,81 @@ class DataManager:
               column_type: Optional[str] = None) -> None:
         if column not in self.df.columns:
             raise ValueError("Coluna inexistente.")
-        cfg = self.x_config.setdefault(column, {"selected": False, "transformation": "x", "expected_sign": 0})
+        cfg = self.x_config.setdefault(column, {"selected": False, "transformation": "x", "expected_sign": 0, "description": ""})
         if selected is not None:
             cfg["selected"] = bool(selected)
         if transformation is not None:
             if transformation not in TRANSFORMS:
                 raise ValueError("Transformação inválida.")
-            if self.column_types.get(column) in ("Dicotômica", "Código alocado") and transformation != "x":
-                raise ValueError("Para Dicotômica e Código alocado só se usa a transformação x.")
+            if self.column_types.get(column) in CATEGORICAL_TYPES and transformation != "x":
+                raise ValueError(
+                    "Para Dicotômica, Código alocado e Código ajustado só se usa a transformação x."
+                )
             cfg["transformation"] = transformation
         if expected_sign is not None:
             cfg["expected_sign"] = int(expected_sign)
         if column_type is not None:
             self.set_column_type(column, column_type)
         self._touch()
+
+    def set_x_description(self, column: str, description: str) -> None:
+        """Guarda o critério da escala qualitativa para o laudo (item 10.1 j)."""
+        if column not in self.df.columns:
+            raise ValueError("Coluna inexistente.")
+        cfg = self.x_config.setdefault(
+            column,
+            {"selected": False, "transformation": "x", "expected_sign": 0, "description": ""},
+        )
+        cfg["description"] = str(description or "").strip()
+        self._touch()
+
+    def micronumerosity_issues(self) -> list[dict[str, Any]]:
+        """Checagem por categoria do Anexo A, A.2 a e A.7.
+
+        A regra global n >= 3(k+1) continua em ``validate``; esta função
+        verifica quantos imóveis ativos existem em cada categoria das
+        variáveis qualitativas usadas no modelo.
+        """
+        issues: list[dict[str, Any]] = []
+        n = self.n_active
+        if n <= 0:
+            return issues
+        if n <= 30:
+            minimum = 3
+            criterion = "n ≤ 30: mínimo de 3 por característica"
+        elif n <= 100:
+            minimum = max(3, int(math.ceil(0.10 * n)))
+            criterion = f"30 < n ≤ 100: mínimo de 10% de {n} = {minimum}"
+        else:
+            minimum = 10
+            criterion = "n > 100: mínimo de 10 por característica"
+        for spec in self.x_specs(True):
+            column = spec["name"]
+            column_type = self.column_types.get(column)
+            if column_type not in CATEGORICAL_TYPES:
+                continue
+            values = pd.to_numeric(
+                self.df[column], errors="coerce"
+            )[self.active_mask()].dropna()
+            counts = values.value_counts()
+            for code, count in counts.items():
+                if int(count) < minimum:
+                    issues.append({
+                        "variable": column,
+                        "type": column_type,
+                        "code": float(code),
+                        "count": int(count),
+                        "minimum": int(minimum),
+                        "sample_size": int(n),
+                        "criterion": criterion,
+                        "text": (
+                            f"Micronumerosidade: “{column}” tem apenas {int(count)} "
+                            f"imóvel(is) com o código {format_number(code, 0)} "
+                            f"(mínimo exigido: {minimum}; {criterion}). "
+                            "Isso pode distorcer o modelo."
+                        ),
+                    })
+        return issues
 
     def set_column_type(self, column: str, column_type: str) -> None:
         if column not in self.df.columns:
@@ -599,8 +673,11 @@ class DataManager:
                         ) from exc
             self.df[column] = pd.Series(values, dtype="float64")
         self.column_types[column] = column_type
-        if column_type in ("Dicotômica", "Código alocado"):
-            cfg = self.x_config.setdefault(column, {"selected": False, "transformation": "x", "expected_sign": 0})
+        if column_type in CATEGORICAL_TYPES:
+            cfg = self.x_config.setdefault(
+                column,
+                {"selected": False, "transformation": "x", "expected_sign": 0, "description": ""},
+            )
             cfg["transformation"] = "x"
         if self.label_column == column:
             self.label_column = None
@@ -619,6 +696,7 @@ class DataManager:
                 "type": self.column_types.get(col, "Quantitativa"),
                 "transformation": cfg.get("transformation", "x"),
                 "expected_sign": int(cfg.get("expected_sign", 0)),
+                "description": str(cfg.get("description", "") or ""),
             })
         return specs
 
@@ -641,10 +719,12 @@ class DataManager:
                 continue
             item = selected.get(col)
             if item:
+                previous = self.x_config.get(col, {})
                 self.x_config[col] = {
                     "selected": True,
                     "transformation": item.get("transformation", "x"),
                     "expected_sign": int(item.get("expected_sign", 0)),
+                    "description": previous.get("description", ""),
                 }
             elif col in self.x_config:
                 self.x_config[col]["selected"] = False
@@ -693,8 +773,10 @@ class DataManager:
                 )
             if transform == "√x" and (active_values < 0).any():
                 errors.append(f"Não é possível usar √x em “{col}”: há valor negativo.")
-            if self.column_types.get(col) in ("Dicotômica", "Código alocado") and transform != "x":
-                errors.append(f"“{col}” é {self.column_types.get(col)} e só pode usar x.")
+            if self.column_types.get(col) in CATEGORICAL_TYPES and transform != "x":
+                errors.append(
+                    f"“{col}” é {self.column_types.get(col)} e só pode usar x."
+                )
             if self.column_types.get(col) == "Código alocado":
                 if not np.allclose(active_values % 1, 0):
                     warnings.append(
@@ -706,26 +788,16 @@ class DataManager:
                         f"“{col}” está marcada como Código alocado, mas há código menor que 1. "
                         "O recomendado é começar em 1."
                     )
-                counts = active_values.value_counts()
-                for code, count in counts.items():
-                    if count < 3:
-                        warnings.append(
-                            f"Micronumerosidade: o código {format_number(code, 0)} de “{col}” "
-                            f"tem só {int(count)} imóvel(is) ligado(s). O ideal é pelo menos 3."
-                        )
-            elif self.column_types.get(col) == "Dicotômica":
+            if self.column_types.get(col) == "Dicotômica":
                 counts = active_values.value_counts()
                 if len(counts) < 2:
                     warnings.append(
                         f"A variável “{col}” é dicotômica mas só tem um valor nos imóveis ligados. "
                         "Confira os dados."
                     )
-                for code, count in counts.items():
-                    if count < 3:
-                        warnings.append(
-                            f"Micronumerosidade: o lado {format_number(code, 0)} de “{col}” "
-                            f"tem só {int(count)} imóvel(is) ligado(s). O ideal é pelo menos 3."
-                        )
+        for issue in self.micronumerosity_issues():
+            if issue["text"] not in warnings:
+                warnings.append(issue["text"])
         if self.y_column:
             y_values = pd.to_numeric(self.df[self.y_column], errors="coerce")[self.active_mask()].dropna()
             if self.y_transform in ("ln(x)", "1/x") and len(y_values) and (y_values <= 0).any():
@@ -799,7 +871,7 @@ class DataManager:
             series = pd.Series([None if is_missing(v) else safe_str(v) for v in values], dtype="object")
         self.df[name] = series
         self.column_types[name] = column_type
-        self.x_config[name] = {"selected": False, "transformation": "x", "expected_sign": 0}
+        self.x_config[name] = {"selected": False, "transformation": "x", "expected_sign": 0, "description": ""}
         self._touch()
         return name
 
@@ -956,7 +1028,7 @@ class DataManager:
             raise ValueError("A conta gerou um número infinito. Confira os valores.")
         self.df[name] = result.astype(float)
         self.column_types[name] = "Quantitativa"
-        self.x_config[name] = {"selected": False, "transformation": "x", "expected_sign": 0}
+        self.x_config[name] = {"selected": False, "transformation": "x", "expected_sign": 0, "description": ""}
         self._touch()
         return name
 
@@ -978,7 +1050,7 @@ class DataManager:
         self.df[name] = pd.Series(converted, dtype="float64")
         self.column_types[name] = "Código alocado"
         self.cluster_column = name
-        self.x_config.setdefault(name, {"selected": False, "transformation": "x", "expected_sign": 0})
+        self.x_config.setdefault(name, {"selected": False, "transformation": "x", "expected_sign": 0, "description": ""})
         self._touch()
         return name
 
@@ -1002,6 +1074,8 @@ class DataManager:
             "adopted": None,
             "use_arbitrio": False,
             "justification": "",
+            "interval_mode": "IC",
+            "round_limits": False,
         }
         self.evaluated.append(item)
         return item
@@ -1010,7 +1084,9 @@ class DataManager:
                          values: Optional[dict[str, Any]] = None,
                          adopted: Any = "__unchanged__",
                          use_arbitrio: Optional[bool] = None,
-                         justification: Optional[str] = None) -> dict[str, Any]:
+                         justification: Optional[str] = None,
+                         interval_mode: Optional[str] = None,
+                         round_limits: Optional[bool] = None) -> dict[str, Any]:
         item = self.get_evaluated(evaluated_id)
         if name is not None:
             item["name"] = str(name).strip() or item["name"]
@@ -1032,11 +1108,17 @@ class DataManager:
             item["use_arbitrio"] = bool(use_arbitrio)
         if justification is not None:
             item["justification"] = str(justification).strip()
+        if interval_mode is not None:
+            item["interval_mode"] = "IP" if str(interval_mode).upper() == "IP" else "IC"
+        if round_limits is not None:
+            item["round_limits"] = bool(round_limits)
         return item
 
     def get_evaluated(self, evaluated_id: str) -> dict[str, Any]:
         for item in self.evaluated:
             if item.get("id") == evaluated_id:
+                item.setdefault("interval_mode", "IC")
+                item.setdefault("round_limits", False)
                 return item
         raise ValueError("Avaliando não encontrado.")
 
@@ -1126,7 +1208,7 @@ class DataManager:
             manager.y_transform = "x"
         manager.x_config = copy.deepcopy(state.get("x_config", {}))
         for col in manager.df.columns:
-            cfg = manager.x_config.setdefault(col, {"selected": False, "transformation": "x", "expected_sign": 0})
+            cfg = manager.x_config.setdefault(col, {"selected": False, "transformation": "x", "expected_sign": 0, "description": ""})
             cfg.setdefault("selected", False)
             cfg.setdefault("transformation", "x")
             cfg.setdefault("expected_sign", 0)

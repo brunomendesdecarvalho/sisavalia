@@ -374,3 +374,86 @@ def test_log_exception_registra_traceback(tmp_path, monkeypatch):
     assert "teste de log" in texto
     assert "RuntimeError: falha controlada do teste" in texto
     assert "Traceback" in texto
+
+
+def test_tipo_codigo_ajustado_e_descricao_da_escala(example: DataManager):
+    from core.data_manager import CATEGORICAL_TYPES, COLUMN_TYPES
+    assert "Código ajustado" in COLUMN_TYPES
+    assert "Código ajustado" in CATEGORICAL_TYPES
+    example.set_column_type("Padrao", "Código ajustado")
+    example.set_x("Padrao", selected=True)
+    example.set_x_description("Padrao", "1 = simples; 2 = normal; 3 = alto")
+    spec = next(s for s in example.x_specs(True) if s["name"] == "Padrao")
+    assert spec["description"] == "1 = simples; 2 = normal; 3 = alto"
+    with pytest.raises(ValueError):
+        example.set_x("Padrao", transformation="ln(x)")
+
+
+def _category_manager(n: int, count_positive: int) -> DataManager:
+    frame = pd.DataFrame({
+        "Y": np.arange(1, n + 1, dtype=float),
+        "Cat": [1.0] * count_positive + [0.0] * (n - count_positive),
+    })
+    manager = DataManager()
+    manager.load_dataframe(frame)
+    manager.y_column = "Y"
+    manager.y_transform = "x"
+    manager.label_column = None
+    manager.column_types["Cat"] = "Dicotômica"
+    manager.x_config["Cat"] = {
+        "selected": True, "transformation": "x", "expected_sign": 0, "description": "",
+    }
+    return manager
+
+
+def test_micronumerosidade_por_faixa_de_n():
+    m20 = _category_manager(20, 2)
+    assert any(i["minimum"] == 3 and i["count"] == 2 for i in m20.micronumerosity_issues())
+    m50 = _category_manager(50, 4)
+    assert any(i["minimum"] == 5 for i in m50.micronumerosity_issues())
+    m101 = _category_manager(101, 5)
+    assert any(i["minimum"] == 10 for i in m101.micronumerosity_issues())
+
+
+def test_extrapolacao_qualitativa_bloqueia_item4(example: DataManager, fit_example):
+    manager = example
+    item = manager.add_evaluated("Fora da categoria", {
+        "Area_m2": 80, "Padrao": 4, "Idade_anos": 5,
+    })
+    result = evaluate_item(manager, fit_example, item)
+    row = next(r for r in result.nbr.extrapolation if r.variable == "Padrao")
+    assert not row.acceptable
+    assert row.reason
+    assert result.nbr.item4_grade == "0"
+
+
+def test_intervalo_predicao_e_intervalo_admissivel(example: DataManager, fit_example):
+    manager = example
+    item = manager.add_evaluated("Intervalo IP", {
+        "Area_m2": 80, "Padrao": 2, "Idade_anos": 5,
+    })
+    manager.update_evaluated(item["id"], interval_mode="IP")
+    result = evaluate_item(manager, fit_example, item)
+    assert result.interval_mode == "IP"
+    assert result.selected_low == pytest.approx(result.prediction.pi_low)
+    assert result.selected_high == pytest.approx(result.prediction.pi_high)
+    assert result.admissible_low == pytest.approx(max(result.prediction.pi_low, result.arbitrio_low))
+    assert result.admissible_high == pytest.approx(min(result.prediction.pi_high, result.arbitrio_high))
+
+
+def test_equacao_original_volta_da_escala_logaritmica(fit_example):
+    assert fit_example.equation.startswith("ln(Valor_unitario)")
+    assert fit_example.equation_original.startswith("Valor_unitario = exp(")
+
+
+def test_plugins_nativos_sao_descobertos_e_calculos_funcionam():
+    from core.plugin_manager import PluginManager
+    names = {p.plugin.name for p in PluginManager().discover()}
+    assert {"Tratamento por fatores", "Método evolutivo e CUB", "Procedimentos específicos"} <= names
+    from plugins._engenharia import ross_heidecke, liquidation_vpl, rent_by_capital, factor_values
+    kd, residual = ross_heidecke(10, 60, "Regular")
+    assert 0 < kd < 1 and residual == pytest.approx(1 - kd)
+    assert liquidation_vpl(500000, 12, 1500, 6, 12)["vpl"] > 0
+    assert rent_by_capital(500000, 6)["monthly"] > 0
+    result = factor_values([100, 110, 120], [1.0], criterion="±30%")
+    assert result.n == 3 and result.mean > 0

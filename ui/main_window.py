@@ -340,6 +340,12 @@ class MainWindow(QMainWindow):
         self._update_action_states()
         if manager.has_data():
             self.recalculate_model(show_errors=False, mark_dirty=False)
+        else:
+            # Sem tabela/linhas não há o que editar: volta aos cartões de
+            # importar planilha, abrir projeto ou abrir exemplo.
+            self._clear_model()
+            self.stack.setCurrentWidget(self.initial_page)
+            self.dirty = False
         if ui_state:
             selected = ui_state.get("selected_evaluated_id")
             if selected:
@@ -620,6 +626,15 @@ class MainWindow(QMainWindow):
             self.recalculate_model(show_errors=False)
 
     def _on_data_changed(self, reason: str) -> None:
+        if not self.manager.has_data():
+            self._clear_model()
+            self.project_io.clear_autosave()
+            self.dirty = False
+            self.stack.setCurrentWidget(self.initial_page)
+            self._update_status()
+            self._update_title()
+            self._update_action_states()
+            return
         self.set_dirty(True)
         self._update_status()
         if reason == "metadata":

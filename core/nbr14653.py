@@ -72,6 +72,8 @@ class ExtrapolationRow:
     estimate_pulled: Optional[float] = None
     distance_pct: Optional[float] = None
     rule_unavailable: bool = False
+    variable_type: str = "Quantitativa"
+    reason: str = ""
 
 
 @dataclass
@@ -128,6 +130,14 @@ def item4_from_extrapolation(rows: list[ExtrapolationRow], simultaneous_pct: Opt
     outside = [r for r in rows if r.situation != "dentro"]
     if not outside:
         return "III", "Nenhuma variável do avaliando está fora da faixa da amostra ativa."
+    qualitative = [r for r in outside if r.reason]
+    if qualitative:
+        names = ", ".join(r.variable for r in qualitative)
+        return "0", (
+            f"{names} está fora das categorias observadas ou da faixa da amostra. "
+            "Extrapolação/interpolação de variável qualitativa é vedada pela NBR 14653-2. "
+            "O item 4 não atinge nenhum grau."
+        )
     unavailable = [r for r in outside if r.rule_unavailable]
     if unavailable:
         names = ", ".join(r.variable for r in unavailable)
@@ -300,10 +310,42 @@ def compute_extrapolation(manager: DataManager, fit: FitResult,
     base_values = {name: parse_number(values[name]) for name in fit.x_names}
     base_estimate = fit.estimate_at(base_values)
     for name in fit.x_names:
+        column_type = manager.column_types.get(name, "Quantitativa")
         series = pd.to_numeric(manager.df[name], errors="coerce")[active_mask]
         minimum, maximum = _safe_min_max(series)
         raw_value = base_values[name]
         situation = "dentro"
+        reason = ""
+        if column_type in ("Dicotômica", "Código alocado", "Código ajustado"):
+            observed = set(float(v) for v in series.dropna().tolist())
+            if raw_value not in observed:
+                if raw_value > maximum:
+                    situation = "acima"
+                elif raw_value < minimum:
+                    situation = "abaixo"
+                else:
+                    situation = "categoria não observada"
+                reason = (
+                    "Variável qualitativa: só são aceitas categorias observadas na amostra; "
+                    "extrapolação/interpolação é vedada."
+                )
+            acceptable = False if reason else True
+            rows.append(ExtrapolationRow(
+                variable=name,
+                value=raw_value,
+                minimum=minimum,
+                maximum=maximum,
+                situation=situation,
+                acceptable=acceptable,
+                limit_text=(
+                    reason if reason
+                    else "categoria observada na amostra; sem extrapolação"
+                ),
+                estimate=base_estimate,
+                variable_type=column_type,
+                reason=reason,
+            ))
+            continue
         if raw_value > maximum:
             situation = "acima"
         elif raw_value < minimum:
@@ -359,13 +401,15 @@ def compute_extrapolation(manager: DataManager, fit: FitResult,
             estimate_pulled=estimate_pulled,
             distance_pct=distance,
             rule_unavailable=rule_unavailable,
+            variable_type=column_type,
         ))
     outside = [r for r in rows if r.situation != "dentro"]
     simultaneous: Optional[float] = None
     if outside:
         simultaneous_values = dict(base_values)
         for row in outside:
-            simultaneous_values[row.variable] = row.pulled_value
+            if row.pulled_value is not None:
+                simultaneous_values[row.variable] = row.pulled_value
         try:
             estimate_simultaneous = fit.estimate_at(simultaneous_values)
             if abs(estimate_simultaneous) > 0:

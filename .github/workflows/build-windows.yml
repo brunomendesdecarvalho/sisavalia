@@ -1,0 +1,102 @@
+name: Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run tests
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest -q -p no:cacheprovider
+
+      - name: Build with PyInstaller
+        shell: pwsh
+        run: |
+          python -m PyInstaller `
+            --noconfirm --clean --windowed --onedir `
+            --name SisAvalia `
+            --add-data "ui/styles.qss;ui" `
+            --add-data "ui/assets;ui/assets" `
+            --add-data "plugins;plugins" `
+            --add-data "exemplos;exemplos" `
+            --exclude-module PyQt5 `
+            --exclude-module PyQt6 `
+            --exclude-module PySide2 `
+            --exclude-module tkinter `
+            --exclude-module pytest `
+            --exclude-module IPython `
+            --exclude-module jedi `
+            --exclude-module zmq `
+            --exclude-module torch `
+            --exclude-module torchvision `
+            --exclude-module torchaudio `
+            --exclude-module tensorflow `
+            --exclude-module tensorboard `
+            --exclude-module cv2 `
+            --exclude-module numba `
+            --exclude-module llvmlite `
+            --exclude-module botocore `
+            --exclude-module boto3 `
+            --exclude-module s3fs `
+            --exclude-module fsspec `
+            --exclude-module pyarrow `
+            --exclude-module gi `
+            --hidden-import xlrd `
+            --hidden-import pandas.io.excel._xlrd `
+            --hidden-import pandas.io.excel._openpyxl `
+            --hidden-import matplotlib.backends.backend_qtagg `
+            --hidden-import matplotlib.backends.backend_agg `
+            main.py
+
+      - name: Verify frozen executable
+        shell: pwsh
+        run: |
+          & "dist\SisAvalia\SisAvalia.exe" --verificar-instalacao
+          if ($LASTEXITCODE -ne 0) { throw "A verificação do executável falhou." }
+
+      - name: Create package
+        shell: pwsh
+        run: |
+          @"
+          SisAvalia 1.1.0 para Windows
+          ===========================
+
+          Descompacte o ZIP e clique duas vezes em SisAvalia.exe.
+          Não é preciso instalar Python.
+          Dados de exemplo. Não use em laudo.
+          "@ | Set-Content -Encoding UTF8 "dist\SisAvalia\LEIA-ME-Windows.txt"
+          Compress-Archive -Path "dist\SisAvalia\*" -DestinationPath "SisAvalia-1.1.0-windows-x64.zip"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SisAvalia-1.1.0-windows-x64
+          path: SisAvalia-1.1.0-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -107,3 +107,26 @@ def test_janela_cabe_em_tela_pequena(tmp_path, monkeypatch):
         window.dirty = False
         window.close()
         app.processEvents()
+
+
+def test_sem_dados_volta_para_tela_inicial(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados4"))
+    app = QApplication.instance() or QApplication([])
+    apply_theme(app, "Normal")
+    from ui.main_window import MainWindow
+
+    window = MainWindow()
+    window._startup_done = True
+    window.show()
+    try:
+        window.open_example()
+        for _ in range(5):
+            app.processEvents()
+        window.manager.delete_rows(range(window.manager.n_rows))
+        window._on_data_changed("structure")
+        assert window.stack.currentWidget() is window.initial_page
+        assert not window.manager.has_data()
+    finally:
+        window.dirty = False
+        window.close()
+        app.processEvents()

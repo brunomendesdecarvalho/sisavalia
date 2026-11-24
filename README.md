@@ -15,7 +15,7 @@ O SisAvalia é distribuído de duas formas. **O Python e as bibliotecas já vão
 
 ### Linux Mint — arquivo `.deb` (três passos)
 
-1. **Baixe o arquivo `sisavalia_1.0.2_amd64.deb`** (ou a versão mais nova) e guarde na pasta Downloads.
+1. **Baixe o arquivo `sisavalia_1.1.0_amd64.deb`** (ou a versão mais nova) e guarde na pasta Downloads.
 2. **Abra o arquivo com o Instalador de Pacotes do Mint**: clique duas vezes no `.deb`, confira o nome SisAvalia e clique em **Instalar**. Se o sistema pedir a senha, digite a senha do computador.
 3. **Abra o SisAvalia pelo menu**: menu do Mint → **Educação** (ou busque por **SisAvalia**) → clique no ícone. O programa abre sem janela de terminal.
 
@@ -23,9 +23,9 @@ Depois de instalado, você também pode **clicar duas vezes em um arquivo `.sisp
 
 ### Fedora e outras distribuições — AppImage (três passos)
 
-> **Compatibilidade do AppImage 1.0.2:** glibc **2.28 ou superior**. Funciona em Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+ e Fedora moderno. Não funciona em Ubuntu 18.04/Mint 19 (glibc 2.27). O pacote foi verificado em Debian 10 (glibc 2.28).
+> **Compatibilidade do AppImage 1.1.0:** glibc **2.28 ou superior**. Funciona em Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+ e Fedora moderno. Não funciona em Ubuntu 18.04/Mint 19 (glibc 2.27). O pacote foi verificado em Debian 10 (glibc 2.28).
 
-1. **Baixe o arquivo `SisAvalia-1.0.2-x86_64.AppImage`**.
+1. **Baixe o arquivo `SisAvalia-1.1.0-x86_64.AppImage`**.
 2. Se o gerenciador de arquivos não abrir com dois cliques, clique com o botão direito → **Propriedades** → marque **Permitir execução** (ou “Executável”).
 3. **Clique duas vezes no AppImage**. O programa abre como qualquer aplicativo, sem instalar Python e sem terminal.
 
@@ -33,7 +33,7 @@ Em algumas distribuições pode ser necessário instalar o suporte a AppImage (`
 
 O programa **verifica os componentes na abertura**. Se o pacote estiver incompleto, mostra uma mensagem simples; a verificação também pode ser feita por `SisAvalia --verificar-instalacao`.
 
-O AppImage de teste também fica disponível na [página de Releases](https://github.com/brunomendesdecarvalho/sisavalia/releases/latest). Se você recebeu esta pasta já compilada, ele está em `dist/SisAvalia-1.0.2-x86_64.AppImage` (gerado em Debian 10). A soma de verificação está em `dist/SHA256SUMS.txt`.
+O AppImage de teste também fica disponível na [página de Releases](https://github.com/brunomendesdecarvalho/sisavalia/releases/latest). Se você recebeu esta pasta já compilada, ele está em `dist/SisAvalia-1.1.0-x86_64.AppImage` (gerado em Debian 10). A soma de verificação está em `dist/SHA256SUMS.txt`.
 
 ### Por que não instalar Python no cliente
 

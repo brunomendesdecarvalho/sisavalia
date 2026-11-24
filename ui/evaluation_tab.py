@@ -63,6 +63,9 @@ class EvaluationTab(QWidget):
         self.top_banner = Banner("", "info")
         self.top_banner.setVisible(False)
         root.addWidget(self.top_banner)
+        self.category_banner = Banner("", "warning")
+        self.category_banner.setVisible(False)
+        root.addWidget(self.category_banner)
         list_card = Card(title="Imóveis avaliandos",
                          subtitle="Cada linha mostra os valores informados e o resultado da projeção.")
         list_actions = QHBoxLayout()
@@ -111,17 +114,36 @@ class EvaluationTab(QWidget):
         self.kpi_precision = KpiCard("Grau de precisão", "—", tip("precisao"))
         self.kpi_prediction = KpiCard("Predição 80% (não entra no grau)", "—", tip("predicao"))
         self.kpi_arbitrio = KpiCard("Campo de arbítrio (±15%)", "—", tip("campo_arbitrio"))
+        self.kpi_admissible = KpiCard(
+            "Intervalo admissível",
+            "—",
+            "Interseção entre o IC/IP 80% escolhido e o campo de arbítrio de ±15%.",
+        )
         kpi_grid.addWidget(self.kpi_estimate, 0, 0)
         kpi_grid.addWidget(self.kpi_ic, 0, 1)
         kpi_grid.addWidget(self.kpi_amp, 0, 2)
         kpi_grid.addWidget(self.kpi_precision, 0, 3)
         kpi_grid.addWidget(self.kpi_prediction, 1, 0, 1, 2)
         kpi_grid.addWidget(self.kpi_arbitrio, 1, 2, 1, 2)
+        kpi_grid.addWidget(self.kpi_admissible, 2, 0, 1, 4)
         kpi_card.add_layout(kpi_grid)
         detail_root.addWidget(kpi_card)
         adopted_card = Card(title="Valor adotado e justificativa")
         adopted_form = QFormLayout()
         adopted_form.setSpacing(8)
+        self.interval_combo = QComboBox()
+        self.interval_combo.addItem("IC 80% (valor de mercado)", "IC")
+        self.interval_combo.addItem("IP 80% (preço)", "IP")
+        self.interval_combo.setToolTip(
+            "Escolha qual intervalo de 80% limita o valor adotado. "
+            "O IC é o intervalo da média; o IP é o intervalo de predição do preço."
+        )
+        self.interval_combo.currentIndexChanged.connect(self._interval_changed)
+        self.round_limits = QCheckBox("Arredondar também os limites em até 1%")
+        self.round_limits.setToolTip(
+            "Arredonda os limites exibidos do intervalo para um múltiplo de 1% da estimativa."
+        )
+        self.round_limits.toggled.connect(self._round_limits_changed)
         self.adopted_edit = QLineEdit()
         self.adopted_edit.setToolTip(tip("adotado"))
         self.adopted_edit.setAccessibleName("Valor adotado")
@@ -144,8 +166,10 @@ class EvaluationTab(QWidget):
         self.justification.setMaximumHeight(95)
         self.justification.setAccessibleName("Justificativa do valor adotado")
         self.justification.textChanged.connect(self._justification_changed)
+        adopted_form.addRow("Intervalo usado:", self.interval_combo)
         adopted_form.addRow("Valor adotado (R$):", adopted_row)
         adopted_form.addRow("", self.use_arbitrio)
+        adopted_form.addRow("", self.round_limits)
         adopted_form.addRow("Justificativa:", self.justification)
         holder = QWidget()
         holder.setLayout(adopted_form)
@@ -241,6 +265,7 @@ class EvaluationTab(QWidget):
         self.fit = None
         self.evaluations = []
         self.selected_id = None
+        self._update_category_banner()
         self._rebuild_table()
         self._update_buttons()
         self._show_placeholder()
@@ -250,7 +275,17 @@ class EvaluationTab(QWidget):
         self._recompute_all(preserve_selection=True)
         self._update_buttons()
 
+    def _update_category_banner(self) -> None:
+        issues = self.manager.micronumerosity_issues()
+        if issues:
+            self.category_banner.setText("\n".join("• " + issue["text"] for issue in issues))
+            self.category_banner.set_role("warning")
+            self.category_banner.setVisible(True)
+        else:
+            self.category_banner.setVisible(False)
+
     def _recompute_all(self, *, preserve_selection: bool = True) -> None:
+        self._update_category_banner()
         previous = self.selected_id if preserve_selection else None
         self.evaluations = []
         if self.fit is not None:
@@ -390,11 +425,28 @@ class EvaluationTab(QWidget):
                 "R$ " + format_number(result.arbitrio_low, 2) + " a R$ " +
                 format_number(result.arbitrio_high, 2)
             )
+            self.kpi_admissible.set_value(
+                "R$ " + format_number(result.display_admissible_low, 2) + " a R$ " +
+                format_number(result.display_admissible_high, 2)
+            )
             if result.adopted_is_estimate:
                 self.adopted_edit.setText(format_number(result.prediction.point, 2))
             else:
                 self.adopted_edit.setText(format_number(result.adopted, 2))
             self.use_arbitrio.setChecked(result.use_arbitrio)
+            self.interval_combo.blockSignals(True)
+            interval_index = self.interval_combo.findData(result.interval_mode)
+            self.interval_combo.setCurrentIndex(interval_index if interval_index >= 0 else 0)
+            self.interval_combo.blockSignals(False)
+            self.round_limits.blockSignals(True)
+            self.round_limits.setChecked(result.round_limits)
+            self.round_limits.blockSignals(False)
+            if result.warnings:
+                self.top_banner.setText("\n".join("• " + w for w in result.warnings))
+                self.top_banner.set_role("warning")
+                self.top_banner.setVisible(True)
+            else:
+                self.top_banner.setVisible(False)
             self.justification.setPlainText(result.justification)
             self.item1_combo.blockSignals(True)
             self.item3_combo.blockSignals(True)
@@ -501,7 +553,9 @@ class EvaluationTab(QWidget):
             self.adopted_edit.setProperty("invalid", True)
         else:
             message = (
-                "Valor dentro do intervalo de confiança."
+                f"Valor dentro do {result.interval_label}. "
+                f"Intervalo admissível: {format_number(result.display_admissible_low, 2)} a "
+                f"{format_number(result.display_admissible_high, 2)}."
                 + (" A justificativa está preenchida." if result.justification_required else "")
             )
             role = "success"
@@ -565,6 +619,27 @@ class EvaluationTab(QWidget):
         self.adopted_edit.setText(format_number(value, 2))
         self._loading = False
         self._adopted_changed()
+
+    def _interval_changed(self) -> None:
+        if self._loading:
+            return
+        result = self._current()
+        if result is None:
+            return
+        mode = str(self.interval_combo.currentData() or "IC")
+        self.manager.update_evaluated(result.item.get("id"), interval_mode=mode)
+        self._refresh_current_after_adoption()
+        self.evaluation_changed.emit()
+
+    def _round_limits_changed(self, checked: bool) -> None:
+        if self._loading:
+            return
+        result = self._current()
+        if result is None:
+            return
+        self.manager.update_evaluated(result.item.get("id"), round_limits=checked)
+        self._refresh_current_after_adoption()
+        self.evaluation_changed.emit()
 
     def _use_arbitrio_changed(self, checked: bool) -> None:
         if self._loading:

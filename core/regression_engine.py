@@ -140,6 +140,23 @@ class FitResult:
         return max(values) if values else float("nan")
 
     @property
+    def equation_original(self) -> str:
+        """Equação com a variável dependente na escala original (não transformada)."""
+        if self.y_transform == "x" or " = " not in self.equation:
+            return self.equation
+        rhs = self.equation.split(" = ", 1)[1]
+        lhs = self.y_name
+        if self.y_transform == "ln(x)":
+            return f"{lhs} = exp({rhs})"
+        if self.y_transform == "1/x":
+            return f"{lhs} = 1 / ({rhs})"
+        if self.y_transform == "x²":
+            return f"{lhs} = √({rhs})"
+        if self.y_transform == "√x":
+            return f"{lhs} = ({rhs})²"
+        return self.equation
+
+    @property
     def coeff_table(self) -> pd.DataFrame:
         rows = []
         for name in ["const"] + self.design_names:

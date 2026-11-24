@@ -114,7 +114,7 @@ class ModelSearch:
         for spec in self.specs:
             name = spec["name"]
             opts = ["x"]
-            if spec["type"] not in ("Dicotômica", "Código alocado"):
+            if spec["type"] not in ("Dicotômica", "Código alocado", "Código ajustado"):
                 raw = pd.to_numeric(manager.df[name], errors="coerce")
                 active = raw[self.manager.active_mask()].dropna()
                 if len(active) and (active > 0).all():

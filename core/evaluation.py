@@ -5,6 +5,8 @@ import math
 from dataclasses import dataclass
 from typing import Any, Optional
 
+import numpy as np
+
 from .data_manager import DataManager
 from .formatting import format_number, is_missing, parse_number
 from .nbr14653 import NBRResult, compute_nbr
@@ -28,10 +30,38 @@ class EvaluationResult:
     blocking_messages: list[str]
     warnings: list[str]
     adopted_is_estimate: bool
+    interval_mode: str = "IC"
+    selected_low: float = 0.0
+    selected_high: float = 0.0
+    admissible_low: float = 0.0
+    admissible_high: float = 0.0
+    adopted_inside_selected: bool = True
+    round_limits: bool = False
+    evaluated_mahalanobis: float = float("nan")
 
     @property
     def can_export(self) -> bool:
         return not self.blocking_messages
+
+    @property
+    def interval_label(self) -> str:
+        return "intervalo de predição de 80%" if self.interval_mode == "IP" else "intervalo de confiança de 80%"
+
+    @property
+    def display_selected_low(self) -> float:
+        return round_to_one_percent(self.selected_low) if self.round_limits else self.selected_low
+
+    @property
+    def display_selected_high(self) -> float:
+        return round_to_one_percent(self.selected_high) if self.round_limits else self.selected_high
+
+    @property
+    def display_admissible_low(self) -> float:
+        return round_to_one_percent(self.admissible_low) if self.round_limits else self.admissible_low
+
+    @property
+    def display_admissible_high(self) -> float:
+        return round_to_one_percent(self.admissible_high) if self.round_limits else self.admissible_high
 
     @property
     def name(self) -> str:
@@ -58,6 +88,28 @@ def round_to_one_percent(estimate: float) -> float:
     return round(estimate / step) * step
 
 
+def _evaluated_mahalanobis(manager: DataManager, fit: FitResult,
+                           values: dict[str, float]) -> float:
+    """Distância de Mahalanobis do vetor X do avaliando em relação à amostra."""
+    try:
+        from .data_manager import transform_value
+        sample = fit.design_matrix.drop(columns=["const"], errors="ignore")
+        matrix = sample.to_numpy(dtype=float)
+        if matrix.ndim != 2 or matrix.shape[0] < 3 or matrix.shape[1] == 0:
+            return float("nan")
+        row = []
+        for name, transform in zip(fit.x_names, fit.x_transforms):
+            row.append(transform_value(float(values[name]), transform))
+        vector = np.asarray(row, dtype=float)
+        center = matrix.mean(axis=0)
+        cov = np.cov(matrix, rowvar=False, ddof=1)
+        inv = np.linalg.pinv(np.atleast_2d(cov))
+        diff = vector - center
+        return float(np.sqrt(max(float(diff @ inv @ diff), 0.0)))
+    except Exception:
+        return float("nan")
+
+
 def evaluate_item(manager: DataManager, fit: FitResult, item: dict[str, Any]) -> EvaluationResult:
     values: dict[str, float] = {}
     for spec in manager.x_specs(True):
@@ -77,15 +129,31 @@ def evaluate_item(manager: DataManager, fit: FitResult, item: dict[str, Any]) ->
     use_arbitrio = bool(item.get("use_arbitrio", False))
     justification = str(item.get("justification", "") or "").strip()
     low, high = arbitrio_range(prediction.point)
+    interval_mode = "IP" if str(item.get("interval_mode", "IC")).upper() == "IP" else "IC"
+    if interval_mode == "IP":
+        selected_low, selected_high = prediction.pi_low, prediction.pi_high
+        interval_name = "intervalo de predição de 80%"
+    else:
+        selected_low, selected_high = prediction.ci_low, prediction.ci_high
+        interval_name = "intervalo de confiança de 80%"
     inside_ci = prediction.ci_low <= adopted <= prediction.ci_high
+    inside_selected = selected_low <= adopted <= selected_high
     inside_arbitrio = low <= adopted <= high
+    admissible_low, admissible_high = max(selected_low, low), min(selected_high, high)
     blocking: list[str] = []
     warnings: list[str] = []
-    if not inside_ci:
+    if not inside_selected:
         msg = (
-            "O valor adotado está fora do intervalo de confiança de 80%. "
+            f"O valor adotado está fora do {interval_name}. "
             "Ele precisa caber entre "
-            f"{format_number(prediction.ci_low, 2)} e {format_number(prediction.ci_high, 2)}."
+            f"{format_number(selected_low, 2)} e {format_number(selected_high, 2)}."
+        )
+        blocking.append(msg)
+        warnings.append(msg)
+    if admissible_low > admissible_high:
+        msg = (
+            "O intervalo escolhido não se cruza com o campo de arbítrio de ±15%. "
+            "Revise o valor ou o intervalo."
         )
         blocking.append(msg)
         warnings.append(msg)
@@ -106,6 +174,13 @@ def evaluate_item(manager: DataManager, fit: FitResult, item: dict[str, Any]) ->
         warnings.append(msg)
     if not prediction.ci_low <= prediction.point <= prediction.ci_high:
         warnings.append("A estimativa não ficou dentro do próprio intervalo. Confira o modelo.")
+    mahal = _evaluated_mahalanobis(manager, fit, values)
+    if math.isfinite(mahal) and math.isfinite(fit.mahalanobis_cutoff) and mahal > fit.mahalanobis_cutoff:
+        warnings.append(
+            f"A combinação de variáveis X deste avaliando é atípica em relação à amostra "
+            f"(Mahalanobis {format_number(mahal, 2)}; corte {format_number(fit.mahalanobis_cutoff, 2)}). "
+            "Confira a coerência das características e a estrutura de correlação antes de usar o valor."
+        )
     return EvaluationResult(
         item=item,
         values=values,
@@ -122,6 +197,14 @@ def evaluate_item(manager: DataManager, fit: FitResult, item: dict[str, Any]) ->
         blocking_messages=blocking,
         warnings=warnings,
         adopted_is_estimate=adopted_is_estimate,
+        interval_mode=interval_mode,
+        selected_low=selected_low,
+        selected_high=selected_high,
+        admissible_low=admissible_low,
+        admissible_high=admissible_high,
+        adopted_inside_selected=inside_selected,
+        round_limits=bool(item.get("round_limits", False)),
+        evaluated_mahalanobis=mahal,
     )
 
 

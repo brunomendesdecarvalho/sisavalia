@@ -75,6 +75,7 @@ class DiagnosticsResult:
     breusch_pagan_p: float
     vif: dict[str, float]
     high_vif: list[str]
+    moderate_vif: list[str]
     high_correlations: list[tuple[str, str, float]]
     durbin_watson: float
     table: list[DiagnosticRow]
@@ -181,6 +182,10 @@ def compute_diagnostics(fit: FitResult) -> DiagnosticsResult:
         bp_text = "Breusch-Pagan não pôde ser calculado com esta amostra."
     # Multicolinearidade
     high_vif = [name for name, value in fit.vif.items() if math.isfinite(value) and value > 10.0]
+    moderate_vif = [
+        name for name, value in fit.vif.items()
+        if math.isfinite(value) and 5.0 < value <= 10.0
+    ]
     high_corr: list[tuple[str, str, float]] = []
     corr = fit.correlation
     for i, name_i in enumerate(corr.columns):
@@ -192,24 +197,33 @@ def compute_diagnostics(fit: FitResult) -> DiagnosticsResult:
                 continue
             if math.isfinite(value) and abs(value) > 0.80:
                 high_corr.append((str(name_i), str(name_j), value))
-    if high_vif or high_corr:
+    if high_vif or moderate_vif or high_corr:
         multi_status = "vermelho" if high_vif else "amarelo"
         pieces: list[str] = []
         if high_vif:
-            pieces.append("VIF acima de 10 em " + ", ".join(high_vif) + ".")
+            pieces.append("VIF acima de 10 (vermelho) em " + ", ".join(high_vif) + ".")
+        if moderate_vif:
+            pieces.append(
+                "VIF entre 5 e 10 (amarelo) em " + ", ".join(moderate_vif) + "."
+            )
         if high_corr:
             pieces.append(
                 "Pares com |r| > 0,80: "
                 + "; ".join(f"{a} × {b} (r = {format_number(r, 2)})" for a, b, r in high_corr)
                 + "."
             )
+        pieces.append(
+            "Revise variáveis que repetem a mesma informação (por exemplo, área e número de "
+            "banheiros/suítes), amplie a amostra ou consulte a aba 6 (PCA)."
+        )
         multi_text = " ".join(pieces)
     else:
         multi_status = "verde"
-        multi_text = "Sem VIF acima de 10 e sem pares de X com |r| acima de 0,80. Sinal verde."
-    # Durbin-Watson (informativo, nunca vermelho)
+        multi_text = "Sem VIF acima de 5 e sem pares de X com |r| acima de 0,80. Sinal verde."
+    # Durbin-Watson: a norma pede o pré-ordenamento pelos valores ajustados.
     try:
-        dw = float(durbin_watson(resid))
+        order = np.argsort(np.asarray(fit.fitted_original, dtype=float))
+        dw = float(durbin_watson(resid[order]))
     except Exception:
         dw = float("nan")
     if math.isfinite(dw):
@@ -220,7 +234,7 @@ def compute_diagnostics(fit: FitResult) -> DiagnosticsResult:
         else:
             dw_note = "está acima de 2,5; pode haver um padrão nos resíduos."
         dw_text = (
-            f"Durbin-Watson = {format_number(dw, 2)} — {dw_note} "
+            f"Durbin-Watson = {format_number(dw, 2)} (calculado após ordenar pelos valores ajustados) — {dw_note} "
             "Este número vale para dados ao longo do tempo. Em avaliação de imóveis ele não decide o grau."
         )
     else:
@@ -289,6 +303,7 @@ def compute_diagnostics(fit: FitResult) -> DiagnosticsResult:
         breusch_pagan_p=bp_p,
         vif=dict(fit.vif),
         high_vif=high_vif,
+        moderate_vif=moderate_vif,
         high_correlations=high_corr,
         durbin_watson=dw,
         table=rows,

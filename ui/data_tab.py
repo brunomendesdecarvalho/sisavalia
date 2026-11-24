@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.data_manager import (
-    COLUMN_TYPES, SIGNS, TEXT_TYPE, TRANSFORMS, DataManager,
+    CATEGORICAL_TYPES, COLUMN_TYPES, SIGNS, TEXT_TYPE, TRANSFORMS, DataManager,
 )
 from core.formatting import format_number, is_missing
 from .clipboard import copy_text
@@ -203,7 +203,7 @@ class DataTab(QWidget):
         self.y_transform_combo.currentTextChanged.connect(self.y_transform_changed)
         self.label_combo.currentTextChanged.connect(self.label_changed)
         hint = QLabel(
-            "Marque as variáveis que entram como X. “Código alocado” e “Dicotômica” só usam x. "
+            "Marque as variáveis que entram como X. “Dicotômica”, “Código alocado” e “Código ajustado” só usam x. "
             "O sinal esperado gera aviso quando a equação vai no sentido contrário; o coeficiente não é forçado."
         )
         hint.setObjectName("Hint")
@@ -374,7 +374,8 @@ class DataTab(QWidget):
             type_combo.setMaximumWidth(185)
             type_combo.setToolTip(
                 "Quantitativa: número medido. Dicotômica: dois valores, como 0 e 1. "
-                "Código alocado: categoria numerada. Proxy: substituta de outra medida."
+                "Código alocado: escala ordinal 1, 2, 3... Código ajustado: categoria já "
+                "transformada em código por dummies. Proxy: substituta de outra medida."
             )
             type_combo.setAccessibleName(f"Tipo de {column}")
             type_combo.currentTextChanged.connect(
@@ -386,7 +387,7 @@ class DataTab(QWidget):
             bottom_row.setSpacing(5)
             bottom_row.addWidget(QLabel("Transformação:"))
             trans_combo = QComboBox()
-            allowed = ["x"] if self.manager.column_types.get(column) in ("Dicotômica", "Código alocado") else list(TRANSFORMS)
+            allowed = ["x"] if self.manager.column_types.get(column) in CATEGORICAL_TYPES else list(TRANSFORMS)
             trans_combo.addItems(allowed)
             trans_combo.setCurrentText(cfg.get("transformation", "x"))
             trans_combo.setToolTip(tip("transformacao"))
@@ -411,6 +412,20 @@ class DataTab(QWidget):
             bottom_row.addWidget(sign_combo)
             bottom_row.addStretch(1)
             row_layout.addLayout(bottom_row)
+            description_edit = QLineEdit()
+            description_edit.setPlaceholderText(
+                "Critério da escala / descrição para o laudo (opcional)"
+            )
+            description_edit.setToolTip(
+                "Ex.: “1 = sem vista; 2 = vista parcial; 3 = vista para o mar”. "
+                "Este texto pode ser incluído no laudo (NBR 14653-2, item 10.1 j)."
+            )
+            description_edit.setAccessibleName(f"Descrição da escala de {column}")
+            description_edit.setText(str(cfg.get("description", "") or ""))
+            description_edit.textChanged.connect(
+                lambda text, col=column: self.variable_description_changed(col, text)
+            )
+            row_layout.addWidget(description_edit)
             self.var_rows_layout.addWidget(holder)
         self.var_rows_layout.addStretch(1)
 
@@ -594,6 +609,12 @@ class DataTab(QWidget):
             return
         self.manager.set_x(column, expected_sign=SIGN_VALUE.get(value, 0))
         self.data_changed.emit("config")
+
+    def variable_description_changed(self, column: str, text: str) -> None:
+        if self._loading:
+            return
+        self.manager.set_x_description(column, text)
+        self.data_changed.emit("metadata")
 
     # --------------------------------------------------------------- estruturas
     def add_row(self) -> None:

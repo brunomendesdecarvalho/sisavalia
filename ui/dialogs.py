@@ -5,8 +5,8 @@ from typing import Any, Optional
 
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
-    QComboBox, QDateEdit, QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPlainTextEdit, QRadioButton, QScrollArea, QVBoxLayout, QWidget,
+    QCheckBox, QComboBox, QDateEdit, QDialog, QFormLayout, QHBoxLayout, QLabel,
+    QLineEdit, QPlainTextEdit, QRadioButton, QScrollArea, QVBoxLayout, QWidget,
 )
 
 from core.data_manager import COLUMN_TYPES, TIPOLOGIAS, DataManager
@@ -64,12 +64,14 @@ class MetadataDialog(DialogBase):
     def __init__(self, metadata: dict[str, Any], parent: Optional[QWidget] = None) -> None:
         super().__init__(
             "Dados do trabalho",
-            "Estas informações aparecem no cabeçalho do relatório e podem ser mudadas depois.",
+            "Estas informações aparecem no laudo e podem ser mudadas depois.",
             parent,
+            width=780,
         )
+        self.resize(780, 720)
         form = QFormLayout()
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        form.setSpacing(10)
+        form.setSpacing(8)
         self.author = QLineEdit(str(metadata.get("author", "")))
         self.author.setPlaceholderText("Seu nome ou da empresa")
         self.work = QLineEdit(str(metadata.get("work_name", "")))
@@ -80,6 +82,12 @@ class MetadataDialog(DialogBase):
         self.date.setLocale(self.locale())
         parsed = QDate.fromString(str(metadata.get("date", "")), "dd/MM/yyyy")
         self.date.setDate(parsed if parsed.isValid() else QDate.currentDate())
+        self.reference_date = QDateEdit()
+        self.reference_date.setDisplayFormat("dd/MM/yyyy")
+        self.reference_date.setCalendarPopup(True)
+        self.reference_date.setLocale(self.locale())
+        parsed_ref = QDate.fromString(str(metadata.get("reference_date", "")), "dd/MM/yyyy")
+        self.reference_date.setDate(parsed_ref if parsed_ref.isValid() else QDate.currentDate())
         self.city = QLineEdit(str(metadata.get("city", "")))
         self.city.setPlaceholderText("Município do imóvel avaliando")
         self.tipologia = QComboBox()
@@ -87,31 +95,87 @@ class MetadataDialog(DialogBase):
         current_type = str(metadata.get("tipologia", "Apartamento"))
         if current_type in TIPOLOGIAS:
             self.tipologia.setCurrentText(current_type)
+        self.requester = QLineEdit(str(metadata.get("requester", "")))
+        self.requester.setPlaceholderText("Quem pediu a avaliação")
+        self.purpose = QLineEdit(str(metadata.get("purpose", "")))
+        self.purpose.setPlaceholderText("Ex.: compra e venda, garantia, locação, desapropriação")
+        self.objective = QLineEdit(str(metadata.get("objective", "")))
+        self.objective.setPlaceholderText("Ex.: determinar o valor de mercado do imóvel")
         self.description = QPlainTextEdit(str(metadata.get("description", "")))
-        self.description.setPlaceholderText("Descrição curta do trabalho ou do imóvel.")
-        self.description.setMaximumHeight(100)
+        self.description.setPlaceholderText("Identificação e caracterização resumida do avaliando e diagnóstico de mercado.")
+        self.description.setMinimumHeight(90)
+        self.assumptions = QPlainTextEdit(str(metadata.get("assumptions", "")))
+        self.assumptions.setPlaceholderText(
+            "Pressupostos, ressalvas e condições limitantes. Ex.: não houve vistoria interna; "
+            "o imóvel foi considerado em situação-paradigma."
+        )
+        self.assumptions.setMinimumHeight(90)
+        self.no_inspection = QCheckBox("Sem vistoria interna — adotar situação-paradigma")
+        self.no_inspection.setToolTip(
+            "Preenche uma ressalva padrão. Revise o texto antes de exportar o laudo."
+        )
+        self.no_inspection.toggled.connect(self._inspection_toggled)
+        self.technical_name = QLineEdit(str(metadata.get("technical_name", "")))
+        self.technical_name.setPlaceholderText("Nome do responsável técnico")
+        self.technical_registry = QLineEdit(str(metadata.get("technical_registry", "")))
+        self.technical_registry.setPlaceholderText("CREA/CAU do responsável")
+        self.signature_city = QLineEdit(str(metadata.get("signature_city", "")))
+        self.signature_city.setPlaceholderText("Cidade da assinatura")
         self.sample_note = QLineEdit(str(metadata.get("sample_note", "")))
         self.sample_note.setPlaceholderText("Opcional. Ex.: Dados de exemplo. Não use em laudo.")
-        form.addRow("Autor:", self.author)
-        form.addRow("Nome do trabalho:", self.work)
-        form.addRow("Data:", self.date)
-        form.addRow("Município:", self.city)
-        form.addRow("Tipologia:", self.tipologia)
-        form.addRow("Descrição curta:", self.description)
-        form.addRow("Observação da amostra:", self.sample_note)
+        for label, widget in (
+            ("Autor:", self.author),
+            ("Responsável técnico:", self.technical_name),
+            ("CREA/CAU:", self.technical_registry),
+            ("Solicitante:", self.requester),
+            ("Nome do trabalho:", self.work),
+            ("Data do trabalho:", self.date),
+            ("Data de referência:", self.reference_date),
+            ("Município:", self.city),
+            ("Tipologia:", self.tipologia),
+            ("Finalidade:", self.purpose),
+            ("Objetivo:", self.objective),
+            ("Identificação / diagnóstico de mercado:", self.description),
+            ("Pressupostos e ressalvas:", self.assumptions),
+            ("", self.no_inspection),
+            ("Cidade da assinatura:", self.signature_city),
+            ("Observação da amostra:", self.sample_note),
+        ):
+            form.addRow(label, widget)
         holder = QWidget()
         holder.setLayout(form)
-        self.card.add(holder)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setMinimumHeight(500)
+        scroll.setWidget(holder)
+        self.card.add(scroll)
         self.confirm_button.setText("Salvar dados")
+
+    def _inspection_toggled(self, checked: bool) -> None:
+        if checked and not self.assumptions.toPlainText().strip():
+            self.assumptions.setPlainText(
+                "Não houve vistoria interna. O imóvel foi avaliado em situação-paradigma, "
+                "com base nas características informadas e nos dados de mercado disponíveis."
+            )
 
     def metadata(self) -> dict[str, Any]:
         return {
             "author": self.author.text().strip(),
             "work_name": self.work.text().strip() or "Trabalho sem nome",
             "date": self.date.date().toString("dd/MM/yyyy"),
+            "reference_date": self.reference_date.date().toString("dd/MM/yyyy"),
             "city": self.city.text().strip(),
             "tipologia": self.tipologia.currentText(),
+            "requester": self.requester.text().strip(),
+            "purpose": self.purpose.text().strip(),
+            "objective": self.objective.text().strip(),
             "description": self.description.toPlainText().strip(),
+            "assumptions": self.assumptions.toPlainText().strip(),
+            "limitations": "",
+            "technical_name": self.technical_name.text().strip(),
+            "technical_registry": self.technical_registry.text().strip(),
+            "signature_city": self.signature_city.text().strip(),
+            "inspection": "Sem vistoria interna" if self.no_inspection.isChecked() else "",
             "sample_note": self.sample_note.text().strip(),
         }
 
