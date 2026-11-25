@@ -82,6 +82,13 @@ python3 -m PyInstaller \
     --hidden-import xlrd \
     --hidden-import pandas.io.excel._xlrd \
     --hidden-import pandas.io.excel._openpyxl \
+    --hidden-import sklearn.neural_network \
+    --hidden-import sklearn.neural_network._multilayer_perceptron \
+    --hidden-import sklearn.linear_model \
+    --hidden-import sklearn.linear_model._base \
+    --hidden-import sklearn.model_selection \
+    --hidden-import sklearn.preprocessing \
+    --hidden-import sklearn.metrics \
     --hidden-import matplotlib.backends.backend_qtagg \
     --hidden-import matplotlib.backends.backend_agg \
     main.py
