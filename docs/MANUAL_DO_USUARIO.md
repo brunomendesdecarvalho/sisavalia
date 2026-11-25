@@ -35,7 +35,7 @@ Use **Importar planilha** ou **Abrir Planilha**. O programa reconhece:
 - CSV com separador `;`, `,` ou tabulação;
 - vírgula ou ponto como separador decimal.
 
-Também é possível copiar uma tabela do LibreOffice Calc (Ctrl+C) e clicar em **Colar do Calc**. Se já houver dados, o programa pergunta antes de substituir.
+Também é possível copiar uma tabela do software de planilhas de sua preferência (Ctrl+C) e clicar em **Colar do Calc**. Se já houver dados, o programa pergunta antes de substituir.
 
 A primeira linha da planilha deve conter os títulos das colunas.
 
@@ -301,7 +301,7 @@ Clique em **Exportar Relatório**. Escolha:
 
 O relatório completo traz metadados, amostra, equação, ANOVA, coeficientes, projeção de cada avaliando, IC, predição, arbítrio, valor adotado, justificativa, fundamentação, precisão, extrapolação, premissas, tabela de resíduos e gráficos.
 
-O **PDF** mantém a sequência de dados do programa e usa margens ABNT (3 cm no topo e à esquerda, 2 cm à direita e embaixo), fonte maior, entrelinha 1,5 e texto justificado. Os gráficos são dimensionados para não cortar rótulos.
+O **PDF** funciona como **anexo** ao laudo: mantém os dados, cálculos e gráficos, mas não repete a identificação, os pressupostos, a qualificação legal nem a assinatura — isso fica no laudo principal. Ele usa margens ABNT (3 cm no topo e à esquerda, 2 cm à direita e embaixo), fonte maior, entrelinha 1,5, texto justificado e tabelas com linhas. Os gráficos são dimensionados para não cortar rótulos.
 
 O **DOCX** é um laudo completo no esqueleto da NBR 14653-2, seção 10.1, com capa, resumo executivo, sumário e os tópicos:
 
@@ -327,7 +327,7 @@ O resumo traz equação, estimativa, IC, valor adotado, graus e gráfico de ader
 
 Se Y estiver em logaritmo, o relatório registra: **a estimativa é o exponencial do ajustado, sem correção de retransformação (smearing)**.
 
-Ao terminar, o programa oferece **Abrir arquivo agora**.
+Ao terminar, o programa mostra o caminho do arquivo e o botão **OK**.
 
 ### Planilha
 
@@ -370,7 +370,7 @@ O relatório mostra esses campos, a equação na forma original de Y, a descriç
 
 Se você recebeu o `.deb` ou o AppImage, **não precisa instalar Python**. O programa já vem com tudo o que usa. O SisAvalia verifica os componentes ao abrir e avisa se o pacote estiver incompleto.
 
-O AppImage 1.2.2 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
+O AppImage 1.2.3 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
 
 Para **Windows**, baixe o ZIP da release, descompacte e clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
 

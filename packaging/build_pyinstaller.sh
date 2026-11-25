@@ -81,6 +81,7 @@ python3 -m PyInstaller \
     --exclude-module nbconvert \
     --hidden-import xlrd \
     --hidden-import core.abnt_docx \
+    --collect-data docx \
     --hidden-import pandas.io.excel._xlrd \
     --hidden-import pandas.io.excel._openpyxl \
     --hidden-import sklearn.neural_network \
@@ -93,6 +94,14 @@ python3 -m PyInstaller \
     --hidden-import matplotlib.backends.backend_qtagg \
     --hidden-import matplotlib.backends.backend_agg \
     main.py
+
+# O python-docx resolve templates por caminho relativo a docx/parts/.
+# Os módulos ficam no PYZ, mas a pasta de dados precisa existir.
+mkdir -p "$ROOT/dist/$APP_NAME/_internal/docx/parts"
+if [ ! -f "$ROOT/dist/$APP_NAME/_internal/docx/templates/default-header.xml" ]; then
+    echo "ERRO: modelo de cabeçalho do python-docx não foi incluído." >&2
+    exit 1
+fi
 
 # Em algumas distribuições (por exemplo Fedora), o PyInstaller copia uma
 # biblioteca FlexiBLAS sem os backends. O sistema já tem a biblioteca; deixar

@@ -25,6 +25,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from . import charting
+from .app_paths import log_exception
 from .data_manager import DataManager, transformation_label
 from .diagnostics import DiagnosticsResult, compute_diagnostics
 from .evaluation import EvaluationResult, report_blockers
@@ -86,7 +87,7 @@ def _percent(value: Any, decimals: int = 1) -> str:
 def _table_html(headers: Sequence[str], rows: Sequence[Sequence[Any]], *,
                 css_class: str = "data", aligns: Optional[Sequence[str]] = None,
                 widths: Optional[Sequence[str]] = None) -> str:
-    parts = [f'<table class="{css_class}" width="100%"><thead><tr>']
+    parts = [f'<table class="{css_class}" width="100%" border="1" cellspacing="0" cellpadding="4"><thead><tr>']
     for i, h in enumerate(headers):
         width_attr = f' width="{_h(widths[i])}"' if widths and i < len(widths) else ""
         parts.append(f"<th{width_attr}>{_h(h)}</th>")
@@ -209,7 +210,6 @@ def _build_images(context: ReportContext, *, summary: bool = False) -> dict[str,
 
 def _shared_head(context: ReportContext) -> str:
     manager = context.manager
-    meta_rows = _metadata_rows(manager)
     sample_parts = [
         f"<p><b>Imóveis na conta:</b> {manager.n_active} &nbsp; "
         f"<b>Desligados:</b> {manager.n_inactive} &nbsp; "
@@ -220,8 +220,9 @@ def _shared_head(context: ReportContext) -> str:
         sample_parts.append(f'<p class="note">{_h(note)}</p>')
     return (
         f'<h1>{_h(context.title)}</h1>'
-        '<p class="subtitle">SisAvalia — análise estatística, regressão linear múltipla e engenharia de avaliações</p>'
-        + _table_html(["Campo", "Conteúdo"], meta_rows, aligns=["left", "left"])
+        '<p class="subtitle">ANEXO AO LAUDO DE AVALIAÇÃO — dados, cálculos e gráficos</p>'
+        '<p class="note">Este anexo integra o laudo de avaliação. A identificação, os '
+        'pressupostos, a qualificação legal e a assinatura constam no laudo principal.</p>'
         + "".join(sample_parts)
     )
 
@@ -232,14 +233,6 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     fit = context.fit
     assert fit is not None
     meta = manager.metadata
-    meta_line_1 = (
-        f"<b>Autor:</b> {_h(meta.get('author', '') or 'Não informado')} &nbsp;•&nbsp; "
-        f"<b>Data:</b> {_h(format_date_br(meta.get('date', '')))}"
-    )
-    meta_line_2 = (
-        f"<b>Município:</b> {_h(meta.get('city', '') or 'Não informado')} &nbsp;•&nbsp; "
-        f"<b>Tipologia:</b> {_h(meta.get('tipologia', '') or 'Não informada')}"
-    )
     eval_rows = []
     for result in context.evaluations:
         eval_rows.append((
@@ -263,9 +256,9 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     h2 {{ font-size: 11.5pt; color: #1e3a8a; margin: 3mm 0 1mm 0; border-bottom: 1px solid #cbd5e1; }}
     p {{ margin: 1mm 0; }}
     .subtitle {{ color: #475569; font-size: 8pt; margin-top: 0; }}
-    table {{ border-collapse: collapse; width: 100%; margin: 1.5mm 0; }}
-    th {{ background: #e2e8f0; text-align: left; padding: 2px 4px; font-size: 8pt; }}
-    td {{ border: 1px solid #cbd5e1; padding: 2px 4px; font-size: 8pt; }}
+    table {{ border-collapse: collapse; width: 100%; margin: 1.5mm 0; border: 1px solid #475569; }}
+    th {{ background: #e2e8f0; text-align: left; padding: 2px 4px; font-size: 8pt; border: 1px solid #475569; }}
+    td {{ border: 1px solid #475569; padding: 2px 4px; font-size: 8pt; }}
     .note {{ background: #fff7ed; border-left: 3px solid #f59e0b; padding: 1.5mm; font-size: 8pt; }}
     .equation {{ background: #eff6ff; border: 1px solid #bfdbfe; padding: 2mm; font-size: 10pt; }}
     .chart {{ margin: 2mm 0; }}
@@ -273,9 +266,8 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     .small {{ font-size: 8pt; color: #475569; }}
     </style></head><body>
     <h1>{_h(context.title)}</h1>
-    <p class="subtitle">SisAvalia — análise estatística, regressão linear múltipla e engenharia de avaliações</p>
-    <p class="small">{meta_line_1}</p>
-    <p class="small">{meta_line_2}</p>
+    <p class="subtitle">ANEXO AO LAUDO DE AVALIAÇÃO — dados, cálculos e gráficos</p>
+    <p class="note">Este anexo integra o laudo de avaliação. A identificação, os pressupostos, a qualificação legal e a assinatura constam no laudo principal.</p>
     <p class="small"><b>Imóveis na conta:</b> {manager.n_active} &nbsp; <b>Desligados:</b> {manager.n_inactive} &nbsp; <b>Gerado em:</b> {_h(context.generated_at)}</p>
     {sample_html}
     <h2>Equação</h2><div class="equation">{_h(fit.equation)}</div>
@@ -283,7 +275,7 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     <p><b>R²:</b> {_n(fit.rsquared, 4)} &nbsp; <b>R² ajustado:</b> {_n(fit.rsquared_adj, 4)} &nbsp;
     <b>Erro padrão:</b> {_n(fit.scale, 4)}</p>
     <h2>Resultado da avaliação</h2>
-    {_table_html(["Avaliando", "Estimativa", "IC 80%", "Adotado", "Fund.", "Precisão"], eval_rows, aligns=["left", "right", "center", "right", "center", "center"], widths=["180px", "110px", "175px", "105px", "80px", "90px"])}
+    {_table_html(["Avaliando", "Estimativa", "IC 80%", "Adotado", "Fund.", "Precisão"], eval_rows, aligns=["left", "right", "center", "right", "center", "center"], widths=["18%", "14%", "25%", "14%", "14%", "15%"])}
     <p><b>Grau de fundamentação:</b> {_h(first.fundamental_degree) if first else '—'} &nbsp;
     <b>Grau de precisão:</b> {_h(first.precision_degree) if first else '—'}</p>
     {note}
@@ -306,6 +298,7 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     sample_table = _table_html(
         ["Papel", "Variável", "Tipo", "Transformação / sinal", "Descrição / critério"],
         sample_rows, aligns=["center", "left", "left", "left", "left"],
+        widths=["10%", "18%", "20%", "24%", "28%"],
     )
     anova_rows = [(
         row["Fonte"], _n(row["SQ"], 4), str(row["GL"]), _n(row["QM"], 4),
@@ -400,12 +393,12 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
         "<h3>Valores observados, estimados e resíduos</h3>"
         + _table_html(["Imóvel", "Observado", "Estimado", "Resíduo", "Relativo"],
                       residual_values, aligns=["left", "right", "right", "right", "right"],
-                      widths=["250px", "135px", "135px", "120px", "110px"], css_class="data small")
+                      widths=["25%", "19%", "19%", "18%", "19%"], css_class="data small")
         + '<div style="page-break-before: always;"></div>'
         + "<h3>Padronizado, studentizado, Cook e Mahalanobis</h3>"
         + _table_html(["Imóvel", "Padronizado", "Studentizado", "Cook", "Mahalanobis"],
                       residual_influence, aligns=["left", "right", "right", "right", "right"],
-                      widths=["240px", "145px", "145px", "110px", "130px"], css_class="data small")
+                      widths=["24%", "19%", "19%", "19%", "19%"], css_class="data small")
     )
     image_html = "".join(
         f'<div class="chart"><img src="{name}" width="420"></div>'
@@ -427,9 +420,9 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     h2 {{ font-size: 13pt; margin: 7mm 0 3mm 0; color: #1e3a8a; border-bottom: 1px solid #cbd5e1; text-align: left; }}
     h3 {{ font-size: 11.5pt; margin: 5mm 0 2mm 0; color: #334155; text-align: left; }}
     .subtitle {{ color: #475569; font-size: 9pt; margin-top: 0; }}
-    table {{ border-collapse: collapse; width: 100%; margin: 2mm 0 3mm 0; }}
-    th {{ background: #e2e8f0; text-align: left; padding: 2px 4px; font-size: 9pt; }}
-    td {{ border: 1px solid #cbd5e1; padding: 2px 4px; font-size: 9pt; vertical-align: top; }}
+    table {{ border-collapse: collapse; width: 100%; margin: 2mm 0 3mm 0; border: 1px solid #475569; }}
+    th {{ background: #e2e8f0; text-align: left; padding: 2px 4px; font-size: 8.5pt; border: 1px solid #475569; }}
+    td {{ border: 1px solid #475569; padding: 2px 4px; font-size: 8.5pt; vertical-align: top; }}
     table.small td, table.small th {{ font-size: 8pt; }}
     .note {{ background: #fff7ed; border-left: 3px solid #f59e0b; padding: 2mm; }}
     .warning {{ background: #fef2f2; border-left: 3px solid #dc2626; padding: 2mm; }}
@@ -468,13 +461,7 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     <div style="page-break-before: always;"></div>
     <h2>8. Gráficos</h2>{image_html}
     <p class="note">{_h(text_about_suggestion)}</p>
-    <h2>9. Responsável técnico</h2>
-    <p><b>Nome:</b> {_h(meta.get('technical_name', '') or 'Não informado')} &nbsp;
-    <b>CREA/CAU:</b> {_h(meta.get('technical_registry', '') or 'Não informado')}</p>
-    <p><b>{_h(meta.get('signature_city', '') or meta.get('city', '') or 'Local')}</b>,
-    {_h(format_date_br(meta.get('reference_date', '') or meta.get('date', '')))}</p>
-    <p>__________________________________________________________<br/>Assinatura do responsável técnico</p>
-    <p class="subtitle">Relatório gerado pelo SisAvalia em {_h(context.generated_at)}.</p>
+    <p class="subtitle">Anexo gerado pelo SisAvalia em {_h(context.generated_at)}.</p>
     </body></html>"""
 
 
@@ -685,6 +672,7 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
     except ReportError:
         raise
     except Exception as exc:
+        log_exception("gerar DOCX")
         raise ReportError("Não foi possível montar o relatório. Confira os dados e tente de novo.") from exc
     return target
 

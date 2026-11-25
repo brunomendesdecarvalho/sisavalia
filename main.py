@@ -31,6 +31,35 @@ def main() -> int:
         report = check_installation()
         print(report.message())
         return 0 if report.ok else 1
+    if "--testar-docx" in sys.argv[1:]:
+        # Diagnóstico usado nos testes do pacote: gera um DOCX a partir de um projeto.
+        index = sys.argv.index("--testar-docx")
+        if index + 1 >= len(sys.argv):
+            print("Uso: --testar-docx projeto.sisproj [saida.docx]")
+            return 2
+        project = sys.argv[index + 1]
+        output = sys.argv[index + 2] if index + 2 < len(sys.argv) else "teste_laudo.docx"
+        try:
+            from core.project_io import ProjectIO
+            from core.regression_engine import RegressionEngine
+            from core.evaluation import evaluate_item
+            from core.report_generator import generate_docx, make_context
+            manager = ProjectIO().load_project(project)
+            fit = RegressionEngine.fit(manager)
+            evaluations = []
+            for item in manager.evaluated:
+                try:
+                    evaluations.append(evaluate_item(manager, fit, item))
+                except Exception:
+                    continue
+            context = make_context("Teste de laudo", manager, fit, evaluations)
+            target = generate_docx(context, output)
+            print(f"DOCX gerado: {target}")
+            return 0
+        except Exception as exc:
+            traceback.print_exc()
+            print(f"Falha ao gerar DOCX: {exc}")
+            return 1
     import matplotlib
     matplotlib.use("QtAgg")
     from PySide6.QtCore import QLocale

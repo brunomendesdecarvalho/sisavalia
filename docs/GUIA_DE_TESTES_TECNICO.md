@@ -206,7 +206,7 @@ Use a amostra **Abrir exemplo**. Todos os testes abaixo podem ser feitos apenas 
 ### CT-25 — DOCX
 
 1. Exporte em DOCX, completo e resumo.
-2. **Esperado:** os arquivos abrem no LibreOffice Writer e podem ser editados.
+2. **Esperado:** os arquivos abrem no software de sua preferência e podem ser editados.
 
 ### CT-26 — Planilha XLSX
 

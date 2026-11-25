@@ -2,7 +2,7 @@
 
 **Público:** avaliador, engenheiro ou técnico que conhece avaliação de imóveis, mas não precisa saber programar.  
 **Objetivo:** verificar se o SisAvalia entrega o fluxo de trabalho de uma avaliação — importar, explorar, modelar, avaliar e exportar — com resultados coerentes e em linguagem compreensível.  
-**Versão:** 1.2.2
+**Versão:** 1.2.3
 **Data de referência:** novembro de 2026
 
 > **Dados de exemplo. Não use em laudo.** A amostra que acompanha o programa é fictícia e serve apenas para este roteiro.
@@ -98,7 +98,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 2. Confira o número de linhas e a ordem das colunas.
 3. Verifique se valores com vírgula decimal foram reconhecidos.
 4. Confira a coluna de rótulo e as colunas de texto (endereço, fonte, observação).
-5. Se quiser, use **Colar do Calc** com uma tabela copiada do LibreOffice.
+5. Se quiser, use **Colar do Calc** com uma tabela copiada do software de planilhas de sua preferência.
 
 **Resultado esperado**
 - A tabela mostra todos os imóveis importados.
@@ -304,7 +304,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 2. Gere um PDF completo.
 3. Gere um PDF com **Modo resumo (1 página)**.
 4. Gere um DOCX.
-5. Clique em **Exportar Planilha** e abra o `.xlsx` no LibreOffice Calc.
+5. Clique em **Exportar Planilha** e abra o `.xlsx` no software de planilhas de sua preferência.
 6. Abra os arquivos gerados.
 
 **Resultado esperado**
@@ -312,7 +312,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 - O resumo tem **uma página**.
 - O DOCX pode ser editado.
 - A planilha tem dados, Ativo, rótulo, estimado, resíduos, Cook, Mahalanobis e a aba de avaliandos.
-- Ao terminar, o programa oferece **Abrir arquivo agora**.
+- Ao terminar, o programa oferece **OK**.
 
 **Critério de aceite:** os três formatos abrem e os valores conferem com a tela.  
 **Criticidade:** Alta.
@@ -380,7 +380,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 6. Leia os graus de fundamentação e precisão.
 7. Adote um valor dentro do intervalo e escreva a justificativa.
 8. Exporte o PDF.
-9. Clique em **Abrir arquivo agora**.
+9. Clique em **OK**.
 
 **Resultado esperado**
 - Todo o fluxo termina sem terminal, sem erro técnico e sem perda de dados.
@@ -450,7 +450,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 
 ### T19 — Build Windows
 
-1. Baixe o ZIP `SisAvalia-1.2.2-windows-x64.zip` da release.
+1. Baixe o ZIP `SisAvalia-1.2.3-windows-x64.zip` da release.
 2. Descompacte em uma pasta.
 3. Clique duas vezes em `SisAvalia.exe`.
 
@@ -548,3 +548,12 @@ Essas informações permitem corrigir o problema sem exigir conhecimento de prog
 3. Clique em **Atualizar Plugins** e veja o novo plugin na lista.
 4. Clique em **Configurar pasta**, escolha uma pasta com outro plugin e confira que os plugins anteriores continuam na lista.
 5. Feche e abra o programa: a pasta extra deve continuar configurada.
+
+
+### T24 — PDF como anexo
+
+1. Exporte o mesmo trabalho em PDF.
+2. Confirme que o PDF **não** traz a tabela de identificação (autor, responsável, CREA, solicitante) nem o bloco de assinatura.
+3. Confirme o aviso de que o anexo integra o laudo principal.
+4. Confira as linhas de grade nas tabelas e os gráficos sem cortes.
+5. Ao terminar a exportação, o alerta deve ter apenas o botão **OK**.

@@ -350,7 +350,7 @@ class PlotCard(Card):
             return
         self.copy_button.setText("Imagem copiada!")
         QTimer.singleShot(1800, self._reset_copy_button)
-        toast(self, "Imagem copiada. Cole no Word, no LibreOffice ou em outro programa.")
+        toast(self, "Imagem copiada. Cole no editor de textos ou no software de sua preferência.")
 
     def _reset_copy_button(self) -> None:
         try:

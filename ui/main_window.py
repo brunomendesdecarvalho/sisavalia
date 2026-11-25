@@ -2,17 +2,13 @@
 from __future__ import annotations
 
 import copy
-import os
 import re
-import shutil
-import subprocess
-import sys
 from datetime import date
 from pathlib import Path
 from typing import Any, Optional
 
-from PySide6.QtCore import QSize, Qt, QTimer, QUrl
-from PySide6.QtGui import QAction, QDesktopServices, QIcon, QKeySequence, QShortcut
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QHBoxLayout, QLabel, QMainWindow,
     QMenu, QMessageBox, QProgressDialog, QPushButton, QStackedWidget,
@@ -814,55 +810,10 @@ class MainWindow(QMainWindow):
         box.setWindowTitle("Relatório gerado")
         box.setIcon(QMessageBox.Icon.Information)
         box.setText(f"O relatório foi gerado em:\n{path}")
-        open_button = box.addButton("Abrir arquivo agora", QMessageBox.ButtonRole.AcceptRole)
-        close_button = box.addButton("Fechar", QMessageBox.ButtonRole.RejectRole)
-        open_button.setIcon(standard_icon("open"))
-        close_button.setIcon(standard_icon("close"))
-        open_button.setMinimumHeight(44)
-        close_button.setMinimumHeight(44)
+        ok_button = box.addButton("OK", QMessageBox.ButtonRole.AcceptRole)
+        ok_button.setIcon(standard_icon("ok"))
+        ok_button.setMinimumHeight(44)
         box.exec()
-        if box.clickedButton() is open_button:
-            self._open_local_file(path)
-
-    def _open_local_file(self, path: Path) -> None:
-        """Abre o relatório no aplicativo padrão, com alternativas no Linux."""
-        target = Path(path).resolve()
-        if not target.exists():
-            show_error(self, "O arquivo não foi encontrado. Gere o relatório novamente.")
-            return
-        try:
-            if os.name == "nt":
-                os.startfile(str(target))  # type: ignore[attr-defined]
-                return
-            if sys.platform == "darwin":
-                subprocess.Popen(["open", str(target)], stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL, start_new_session=True)
-                return
-            commands: list[list[str]] = []
-            for name in ("xdg-open", "kde-open5", "kde-open", "exo-open"):
-                executable = shutil.which(name)
-                if executable:
-                    commands.append([executable, str(target)])
-            gio = shutil.which("gio")
-            if gio:
-                commands.append([gio, "open", str(target)])
-            for command in commands:
-                try:
-                    subprocess.Popen(command, stdout=subprocess.DEVNULL,
-                                     stderr=subprocess.DEVNULL,
-                                     start_new_session=True)
-                    return
-                except OSError:
-                    continue
-            if QDesktopServices.openUrl(QUrl.fromLocalFile(str(target))):
-                return
-        except Exception:
-            pass
-        show_info(
-            self,
-            f"Não foi possível abrir automaticamente o arquivo.\n\nEle está em:\n{target}",
-            title="Arquivo gerado",
-        )
 
     def export_spreadsheet(self) -> None:
         if not self.manager.has_data():

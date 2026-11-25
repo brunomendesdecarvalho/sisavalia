@@ -117,7 +117,7 @@ class DataTab(QWidget):
         self.reactivate_button = button("Reativar todos", "refresh",
                                         tooltip="Liga de novo todos os imóveis desligados.")
         self.copy_button = button("Copiar tabela", "copy",
-                                  tooltip="Copia a tabela para colar no LibreOffice Calc.")
+                                  tooltip="Copia a tabela para colar no software de planilhas de sua preferência.")
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Localizar na tabela...")
         self.search_edit.setClearButtonEnabled(True)
@@ -727,7 +727,7 @@ class DataTab(QWidget):
             show_warning(self, "Ainda não há dados para copiar.")
             return
         copy_text(self.manager.copy_table_tsv())
-        toast(self, "Tabela copiada. Cole no LibreOffice Calc com Ctrl+V.")
+        toast(self, "Tabela copiada. Cole no software de planilhas de sua preferência com Ctrl+V.")
 
     def paste_from_calc(self) -> None:
         from PySide6.QtWidgets import QApplication

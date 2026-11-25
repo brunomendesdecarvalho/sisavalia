@@ -25,7 +25,7 @@ clique em <i>Sugerir equações</i> e depois em <i>Usar este modelo</i>. A suges
 fundamentação e o grau de precisão. Escolha o valor adotado e escreva a justificativa se ele for diferente
 da estimativa.</li>
 <li><b>Exportar.</b> Use <i>Exportar Relatório</i> para PDF ou DOCX. Use <i>Exportar Planilha</i> para
-levar os dados, resíduos e avaliandos para o LibreOffice Calc.</li>
+levar os dados, resíduos e avaliandos para o software de planilhas de sua preferência.</li>
 </ol>
 <h3>Dicas para facilitar</h3>
 <ul>

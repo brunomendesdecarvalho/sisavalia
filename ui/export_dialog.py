@@ -34,7 +34,7 @@ class ExportDialog(DialogBase):
         self.title_edit = QLineEdit(default_title)
         self.title_edit.setPlaceholderText("Título que aparece no relatório")
         self.pdf_radio = QRadioButton("PDF (recomendado para enviar e imprimir)")
-        self.docx_radio = QRadioButton("DOCX (para editar no LibreOffice Writer)")
+        self.docx_radio = QRadioButton("DOCX (para editar no software de sua preferência)")
         self.pdf_radio.setChecked(True)
         self.summary_check = QCheckBox("Modo resumo (1 página)")
         self.summary_check.setToolTip(
