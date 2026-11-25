@@ -331,6 +331,8 @@ O relatório mostra esses campos, a equação na forma original de Y, a descriç
 - Passe o mouse sobre termos técnicos para ver explicações em linguagem simples.
 - Em **Ajuda Rápida → Tabelas NBR 14653-2**, consulte as Tabelas 1, 2, 3, 4, 5, 6, 7, 10 e 11 com os critérios, graus e pontos. As tabelas podem ser copiadas.
 
+![Consulta das tabelas NBR](telas/tabelas_nbr.png)
+
 ## 12. Se algo der errado
 
 - O programa nunca mostra “traceback”. Ele mostra uma mensagem curta.
