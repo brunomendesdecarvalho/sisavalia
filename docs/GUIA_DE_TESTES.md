@@ -392,6 +392,74 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 
 ---
 
+### T15 — Tipos qualitativos, descrição e micronumerosidade
+
+**Objetivo:** verificar os cuidados de modelagem da NBR 14653-2.
+
+1. Marque uma variável como **Código ajustado** e outra como **Código alocado**.
+2. Preencha o **Critério da escala** de cada uma.
+3. Reduza a amostra até uma categoria ter menos de 3 imóveis ligados.
+4. Abra as abas **Resíduos & Cook** e **Avaliando & NBR**.
+
+**Resultado esperado:** o campo de descrição é salvo no `.sisproj`; a transformação fica limitada a x; o alerta de micronumerosidade aparece nas duas abas com o nome da variável e o mínimo exigido.
+
+**Critério de aceite:** nenhuma categoria insuficiente passa sem aviso.
+**Criticidade:** Alta.
+
+---
+
+### T16 — IC ou IP, intervalo admissível e arredondamento
+
+1. Selecione um avaliando.
+2. Alterne **Intervalo usado** entre IC 80% e IP 80%.
+3. Confira o **Intervalo admissível**.
+4. Marque **Arredondar também os limites em até 1%**.
+5. Tente adotar um valor fora do intervalo escolhido.
+
+**Resultado esperado:** o valor é bloqueado fora do intervalo escolhido; o intervalo admissível é a interseção com o campo de arbítrio; os limites aparecem arredondados quando a opção está marcada.
+
+**Criticidade:** Alta.
+
+---
+
+### T17 — Formulário mínimo do laudo
+
+1. Abra **Dados do trabalho**.
+2. Preencha solicitante, finalidade, objetivo, data de referência, responsável técnico e CREA/CAU.
+3. Use a opção **Sem vistoria interna — situação-paradigma**.
+4. Exporte o PDF/DOCX.
+
+**Resultado esperado:** o laudo traz os campos, a equação na forma original de Y, a descrição das variáveis, a tabela de elasticidades e o bloco de assinatura.
+
+**Criticidade:** Alta.
+
+---
+
+### T18 — Plugins de engenharia
+
+1. Na aba **8. Plugins**, execute **Tratamento por fatores**.
+2. Informe um fator fora de [0,50; 2,00] e confira o alerta.
+3. Execute **Método evolutivo e CUB**.
+4. Execute **Procedimentos específicos** nas três abas.
+
+**Resultado esperado:** cada plugin abre, calcula, mostra o resultado e permite copiar/salvar. O tratamento por fatores mostra CV antes/depois e graus; o evolutivo mostra área equivalente, CUB, depreciação, CB e VI; os procedimentos retornam VPL, indenização e aluguel.
+
+**Criticidade:** Alta.
+
+---
+
+### T19 — Build Windows
+
+1. Baixe o ZIP `SisAvalia-1.1.0-windows-x64.zip` da release.
+2. Descompacte em uma pasta.
+3. Clique duas vezes em `SisAvalia.exe`.
+
+**Resultado esperado:** o programa abre sem terminal, sem pedir Python e mostra a tela inicial em português.
+
+**Criticidade:** Média.
+
+---
+
 ## 4. Matriz-resumo
 
 | Código | Cenário | Criticidade | Resultado |
@@ -410,6 +478,11 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 | T12 | Salvamento e recuperação | Alta |  |
 | T13 | Legibilidade e padrão brasileiro | Média |  |
 | T14 | Aceite final | Alta |  |
+| T15 | Tipos, descrição e micronumerosidade | Alta |  |
+| T16 | IC/IP, intervalo admissível e arredondamento | Alta |  |
+| T17 | Formulário mínimo do laudo | Alta |  |
+| T18 | Plugins de engenharia | Alta |  |
+| T19 | Build Windows | Média |  |
 
 **Conclusão:** se todos os cenários de criticidade Alta forem aprovados e o padrão brasileiro estiver correto, o SisAvalia está aceito para uso assistido. A aprovação não substitui a análise técnica do avaliador nem a aplicação da NBR 14653-2.
 

@@ -31,6 +31,12 @@ Depois de instalado, você também pode **clicar duas vezes em um arquivo `.sisp
 
 Em algumas distribuições pode ser necessário instalar o suporte a AppImage (`libfuse2`/FUSE). Se o duplo clique não funcionar, use o **AppImageLauncher** para integrar o arquivo ao menu. O AppImage é a opção mais indicada quando você não sabe qual é a distribuição ou quando ela não usa `.deb`.
 
+### Windows
+
+1. Baixe `SisAvalia-1.1.0-windows-x64.zip` na página de Releases.
+2. Descompacte em uma pasta.
+3. Clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
+
 O programa **verifica os componentes na abertura**. Se o pacote estiver incompleto, mostra uma mensagem simples; a verificação também pode ser feita por `SisAvalia --verificar-instalacao`.
 
 O AppImage de teste também fica disponível na [página de Releases](https://github.com/brunomendesdecarvalho/sisavalia/releases/latest). Se você recebeu esta pasta já compilada, ele está em `dist/SisAvalia-1.1.0-x86_64.AppImage` (gerado em Debian 10). A soma de verificação está em `dist/SHA256SUMS.txt`.
@@ -45,7 +51,9 @@ Instalação mais detalhada, para casos de dúvida: [docs/INSTALACAO.md](docs/IN
 
 - Importar planilhas `.xlsx`, `.xls` e `.csv` ou colar uma tabela do LibreOffice Calc.
 - Marcar imóveis como ativos/desligados sem apagar os dados.
-- Definir Y, X, tipos de variável, transformações (x, ln(x), 1/x, x², √x) e sinal esperado.
+- Definir Y, X, tipos de variável (incluindo Código ajustado), descrição/critério da escala, transformações (x, ln(x), 1/x, x², √x) e sinal esperado.
+- Checar micronumerosidade por categoria, VIF (amarelo > 5, vermelho > 10) e coerência do avaliando.
+- Alternar entre IC 80% e IP 80%, calcular o intervalo admissível e arredondar valor/limites em até 1%.
 - Explorar estatísticas, vazios, dispersões e histogramas.
 - Calcular uma equação OLS dirigida ou pedir sugestões de equações (até 1.500 especificações completas; acima disso, busca simplificada com teto de 400 ajustes).
 - Ler ANOVA, coeficientes, R², R² ajustado, correlação, aderência, curva da função e elasticidades.
@@ -116,6 +124,8 @@ Gerar um AppImage portátil (em ambiente com glibc ≤ 2.28, por exemplo Debian 
 ```bash
 ./packaging/build_appimage.sh
 ```
+
+O build Windows é feito pelo workflow `.github/workflows/build-windows.yml` (GitHub Actions, Python 3.12/PyInstaller) e gera `SisAvalia-1.1.0-windows-x64.zip`.
 
 Os scripts usam PyInstaller `--windowed --onedir`; o `.deb` cria atalho no menu, ícone e associação de arquivos `.sisproj`; o AppImage gera um arquivo único executável. O AppImage pode baixar o `appimagetool` na primeira compilação.
 

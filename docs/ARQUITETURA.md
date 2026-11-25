@@ -78,6 +78,8 @@ A aplicação usa a paleta clara fixa (`light_palette`) e o estilo Fusion. Isso 
 
 `packaging/build_pyinstaller.sh` concentra a compilação PyInstaller. `build_deb.sh` monta o `.deb` para Mint/Ubuntu e `build_appimage.sh` monta um AppImage para Fedora e outras distribuições. Os dois pacotes incluem Python, bibliotecas e recursos. O aplicativo verifica a integridade dos módulos e dos recursos ao iniciar (`core/self_check.py`) e aceita `--verificar-instalacao`.
 
+O build Windows fica em `.github/workflows/build-windows.yml`: usa Python 3.12, executa os testes, compila com PyInstaller `--windowed --onedir`, verifica o executável e publica o ZIP como artefato. Os plugins nativos em `plugins/` são copiados como dados; `_engenharia.py` começa com `_` e não é descoberto como plugin.
+
 Para o AppImage ser portátil, o PySide6 está fixado em 6.9.3 (glibc 2.28) e o build precisa ocorrer em ambiente com glibc ≤ 2.28. `packaging/check_glibc.py` varre todos os ELF do pacote e interrompe a compilação se encontrar `GLIBC_ABI_GNU2_TLS` ou versão superior à meta. O AppImage 1.1.0 foi compilado no Debian 10 e verificado nessa mesma base.
 
 ### Relatórios

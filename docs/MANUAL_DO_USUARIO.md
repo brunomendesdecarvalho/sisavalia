@@ -65,16 +65,22 @@ No painel **Variáveis do modelo**:
   - **Quantitativa**: número medido, como área, idade e valor.
   - **Dicotômica**: dois resultados, como 0/1 ou sim/não.
   - **Código alocado**: categoria numerada, como padrão 1, 2, 3. Precisa ser inteiro a partir de 1.
+  - **Código ajustado**: categoria já transformada em código por dummies, para uso como variável numérica no modelo.
   - **Proxy**: variável que substitui outra que não foi medida.
 - Escolha a **Transformação** (x, ln(x), 1/x, x², √x).
 - Escolha o **Sinal esperado**: Subir, Descer ou Tanto faz.
+- No campo **Critério da escala / descrição**, registre o significado dos códigos. Exemplo: “1 = sem vista; 2 = vista parcial; 3 = vista para o mar”. Esse texto é guardado no projeto e incluído no laudo (NBR 14653-2, item 10.1 j).
 
 Regras importantes:
 
 - Colunas de texto não entram na equação. Elas podem ser usadas como rótulo.
-- Dicotômica e Código alocado só usam a transformação **x**.
+- Dicotômica, Código alocado e Código ajustado só usam a transformação **x**.
 - ln(x) e 1/x exigem todos os valores maiores que zero. √x exige valores maiores ou iguais a zero. Se não for possível, o programa avisa e não calcula.
-- Se um código ou um lado da dicotômica tiver menos de 3 imóveis ligados, aparece um aviso de **micronumerosidade**.
+- **Micronumerosidade**: para Dicotômica, Código alocado e Código ajustado, o programa confere cada categoria:
+  - até 30 imóveis ligados: mínimo de 3 por característica;
+  - de 31 a 100: mínimo de 10% do número de imóveis;
+  - acima de 100: mínimo de 10 por característica.
+  O alerta aparece na aba Dados, na aba 5 (Resíduos & Cook) e na aba 4 (Avaliando & NBR).
 
 ### Nova coluna calculada
 
@@ -155,6 +161,9 @@ Na escala original de Y:
 - **IC 80% da média**, calculado com t bicaudal e n − k − 1 graus de liberdade. A amplitude é `(limite superior − inferior) / estimativa × 100`.
 - **Grau de precisão**: III até 30%, II até 40%, I até 50%; acima disso, Fora de norma.
 - **Intervalo de predição 80%**, visível, com o aviso de que **não entra no grau**.
+- **Intervalo usado**: escolha entre **IC 80% (média)** e **IP 80% (preço)** para limitar o valor adotado.
+- **Intervalo admissível**: interseção entre o intervalo escolhido e o campo de arbítrio de ±15%. É esse intervalo que mostra onde o valor final pode ficar.
+- **Arredondar também os limites em até 1%**: opcional, para o laudo.
 - **Campo de arbítrio de ±15%**.
 - **Valor adotado** e **Justificativa**. Use **Arredondar 1%** se quiser.
 
@@ -201,8 +210,9 @@ O **grau de fundamentação** e o **grau de precisão** aparecem separados, com 
 
 - **Normalidade**: conta os resíduos padronizados dentro de ±1σ, ±1,64σ e ±1,96σ. As faixas esperadas são 66–74%, 85–95% e 95–100%. Verde quando dentro; amarelo quando sai até 5 pontos; vermelho no restante. O Shapiro-Wilk aparece como linha extra, sem cor decisiva.
 - **Dispersão dos resíduos**: Breusch-Pagan, com frase de resultado.
-- **Variáveis repetidas**: VIF acima de 10 e pares de X com |r| > 0,80.
-- **Durbin-Watson**: informativo. **Este número vale para dados ao longo do tempo. Em avaliação de imóveis ele não decide o grau.**
+- **Variáveis repetidas**: VIF amarelo acima de 5 e vermelho acima de 10; pares de X com |r| > 0,80. Quando houver redundância, o programa sugere revisar variáveis repetidas, ampliar a amostra ou consultar a aba 6 (PCA).
+- **Durbin-Watson**: calculado após ordenar os imóveis pelos valores ajustados. É informativo. **Este número vale para dados ao longo do tempo. Em avaliação de imóveis ele não decide o grau.**
+- **Coerência do avaliando**: o programa calcula a distância de Mahalanobis do avaliando em relação à amostra e avisa quando a combinação de X é atípica.
 
 ### Tabela
 
@@ -242,9 +252,14 @@ Os valores são fictícios. Não use em laudo.
 
 ## 9. Aba 8 — Plugins
 
-O programa procura plugins na pasta `plugins` da instalação. O plugin de exemplo **Resumo estatístico** mostra uma tabela com mínimo, máximo, média, mediana, desvio padrão e vazios das colunas numéricas.
+O programa procura plugins na pasta `plugins` da instalação. Plugins nativos:
 
-Se um plugin falhar, o programa mostra uma mensagem simples e guarda o detalhe em `erros.log`.
+- **Resumo estatístico**: mínimo, máximo, média, mediana, desvio padrão e vazios das colunas numéricas.
+- **Tratamento por fatores**: homogeneização por fatores manuais, saneamento de discrepantes, coeficiente de variação e enquadramento nas Tabelas 3, 4 e 5.
+- **Método evolutivo e CUB**: área equivalente, custo de reprodução, depreciação Ross-Heidecke simplificada, custo de reedição e valor evolutivo.
+- **Procedimentos específicos**: liquidação forçada por VPL, desapropriação parcial antes/depois e aluguel por remuneração do capital.
+
+Cada plugin tem botão para copiar ou salvar o resultado. Se um plugin falhar, o programa mostra uma mensagem simples e guarda o detalhe em `erros.log`.
 
 ## 10. Salvar, recuperar e exportar
 
@@ -291,6 +306,19 @@ Ao terminar, o programa oferece **Abrir arquivo agora**.
 
 **Exportar Planilha** gera um `.xlsx` com os dados originais, a coluna Ativo, o rótulo, estimado, resíduos, Cook, Mahalanobis, cluster (se existir) e uma aba **Avaliandos**.
 
+### Dados do laudo
+
+Antes de exportar, clique em **Dados do trabalho** e preencha:
+
+- autor e responsável técnico (nome e CREA/CAU);
+- solicitante, finalidade e objetivo;
+- data do trabalho e data de referência;
+- identificação/caracterização e diagnóstico de mercado;
+- pressupostos, ressalvas e condições limitantes (há a opção rápida **Sem vistoria interna — situação-paradigma**);
+- cidade da assinatura.
+
+O relatório mostra esses campos, a equação na forma original de Y, a descrição/critério das variáveis, o gráfico Observados × Estimados, a tabela de elasticidades e o bloco de assinatura.
+
 ## 11. Teclado e acessibilidade
 
 - Use **Tab** para andar entre os campos.
@@ -314,6 +342,8 @@ Se você recebeu o `.deb` ou o AppImage, **não precisa instalar Python**. O pro
 
 O AppImage 1.1.0 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
 
+Para **Windows**, baixe o ZIP da release, descompacte e clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
+
 O programa não baixa nem instala bibliotecas sozinho no seu computador. Isso evita pedir senha, gastar internet sem aviso ou mexer no Python do sistema. Se aparecer “Instalação incompleta”, feche e instale novamente o pacote.
 
 ## 14. Telas pequenas e tema
@@ -326,6 +356,6 @@ O menu superior e as abas continuam acessíveis. Se a fonte estiver em **Grande*
 
 ## 15. Limites do programa
 
-O SisAvalia faz **OLS** (mínimos quadrados ordinários) com uma equação linear. Não faz regressão não linear, DEA, redes neurais, Box-Cox, PRESS, coeficiente forçado, homogeneização por fatores, senha no arquivo nem máxima verossimilhança separada.
+O SisAvalia faz **OLS** (mínimos quadrados ordinários) com uma equação linear. Não faz regressão não linear, DEA, redes neurais, Box-Cox, PRESS, coeficiente forçado, senha no arquivo nem máxima verossimilhança separada. O tratamento por fatores é feito no plugin próprio, como apoio; a decisão e a responsabilidade continuam do avaliador.
 
 A conta da NBR 14653-2 é uma **ferramenta de apoio**. Ela não substitui a análise e a responsabilidade do avaliador.

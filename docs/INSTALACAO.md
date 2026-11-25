@@ -31,6 +31,14 @@ Não é preciso abrir o terminal nem digitar comandos.
 
 Na primeira vez, o programa abre a tela inicial. Use **Abrir exemplo** para aprender. O exemplo é fictício: **não use em laudo**.
 
+## Windows
+
+1. Baixe `SisAvalia-1.1.0-windows-x64.zip` na release.
+2. Descompacte em uma pasta de sua escolha.
+3. Clique duas vezes em `SisAvalia.exe`.
+
+O ZIP inclui Python, Qt e as bibliotecas. Não é preciso instalar Python nem usar terminal. O build é produzido pelo workflow do GitHub Actions a partir do mesmo código.
+
 ## AppImage — Fedora e outras distribuições
 
 **Compatibilidade:** o AppImage 1.1.0 exige **glibc 2.28 ou superior**. Isso inclui Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+ e Fedora moderno. Ubuntu 18.04 e Mint 19 (glibc 2.27) não são compatíveis.
