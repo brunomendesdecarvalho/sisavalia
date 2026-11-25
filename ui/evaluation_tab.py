@@ -96,7 +96,10 @@ class EvaluationTab(QWidget):
         root.addWidget(list_card)
         self.detail_stack = QStackedWidget()
         placeholder = Card(title="Selecione um avaliando")
-        placeholder.add(Hint("Os resultados, o valor adotado, a extrapolação e os graus aparecem aqui."))
+        self.placeholder_hint = Hint(
+            "Os resultados, o valor adotado, a extrapolação e os graus aparecem aqui."
+        )
+        placeholder.add(self.placeholder_hint)
         self.detail_stack.addWidget(placeholder)
         self.detail_widget = QWidget()
         detail_root = QVBoxLayout(self.detail_widget)
@@ -294,10 +297,12 @@ class EvaluationTab(QWidget):
                     self.evaluations.append(evaluate_item(self.manager, self.fit, item))
                 except (ModelError, ValueError):
                     continue
-        if previous and any(r.item.get("id") == previous for r in self.evaluations):
+        # A seleção pertence ao avaliando, não ao resultado da projeção:
+        # um avaliando incompleto continua selecionável para ser editado.
+        if previous and any(item.get("id") == previous for item in self.manager.evaluated):
             self.selected_id = previous
-        elif self.evaluations:
-            self.selected_id = self.evaluations[0].item.get("id")
+        elif self.manager.evaluated:
+            self.selected_id = self.manager.evaluated[0].get("id")
         else:
             self.selected_id = None
         self._rebuild_table()
@@ -394,14 +399,38 @@ class EvaluationTab(QWidget):
         return self.selected_id
 
     # --------------------------------------------------------- seleção atual
-    def _show_placeholder(self) -> None:
+    def _show_placeholder(self, message: str = "") -> None:
         self.detail_stack.setCurrentIndex(0)
         self.detail_title.setText("")
+        self.placeholder_hint.setText(
+            message or "Os resultados, o valor adotado, a extrapolação e os graus aparecem aqui."
+        )
+
+    def ensure_selection(self) -> None:
+        """Restaura a seleção ao voltar para a aba, mesmo sem projeção válida."""
+        if self.selected_id and any(
+            item.get("id") == self.selected_id for item in self.manager.evaluated
+        ):
+            self._select_row_by_id(self.selected_id)
+            self._load_selected()
+        elif self.manager.evaluated:
+            self.selected_id = self.manager.evaluated[0].get("id")
+            self._select_row_by_id(self.selected_id)
+            self._load_selected()
+        self._update_buttons()
 
     def _load_selected(self) -> None:
         result = self._current()
         if result is None:
-            self._show_placeholder()
+            if self.selected_id and any(
+                item.get("id") == self.selected_id for item in self.manager.evaluated
+            ):
+                self._show_placeholder(
+                    "Este avaliando ainda não pôde ser projetado com o modelo atual. "
+                    "Clique em Editar selecionado para completar os campos ou revise as variáveis X."
+                )
+            else:
+                self._show_placeholder()
             return
         self.detail_stack.setCurrentIndex(1)
         self._loading = True

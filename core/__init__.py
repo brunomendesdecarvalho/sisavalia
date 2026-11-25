@@ -1,3 +1,3 @@
 """Núcleo de cálculo do SisAvalia (sem dependência da interface)."""
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"

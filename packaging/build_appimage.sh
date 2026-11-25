@@ -5,7 +5,7 @@
 set -euo pipefail
 
 APP_NAME="SisAvalia"
-VERSION="${VERSION:-1.2.0}"
+VERSION="${VERSION:-1.2.1}"
 ARCH="${ARCH:-x86_64}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

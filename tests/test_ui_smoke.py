@@ -145,3 +145,72 @@ def test_dialogo_tabelas_nbr_abre(tmp_path, monkeypatch):
     finally:
         dialog.close()
         app.processEvents()
+
+
+def test_avaliando_selecao_sobrevive_a_troca_de_aba(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados5"))
+    app = QApplication.instance() or QApplication([])
+    apply_theme(app, "Normal")
+    from ui.main_window import MainWindow
+
+    window = MainWindow()
+    window._startup_done = True
+    window.show()
+    try:
+        window.open_example()
+        for _ in range(5):
+            app.processEvents()
+        first = window.manager.add_evaluated(
+            "Primeiro", {"Area_m2": 80, "Padrao": 2, "Idade_anos": 5}
+        )
+        second = window.manager.add_evaluated(
+            "Segundo", {"Area_m2": 120, "Padrao": 3, "Idade_anos": 2}
+        )
+        window.evaluation_tab.refresh()
+        window.evaluation_tab.select_evaluated_id(second["id"])
+        assert window.evaluation_tab.selected_id == second["id"]
+        window.workspace.setCurrentIndex(0)
+        app.processEvents()
+        window.workspace.setCurrentIndex(3)
+        for _ in range(10):
+            app.processEvents()
+            time.sleep(0.005)
+        assert window.evaluation_tab.selected_id == second["id"]
+        assert window.evaluation_tab.edit_button.isEnabled()
+    finally:
+        window.dirty = False
+        window.close()
+        app.processEvents()
+
+
+def test_avaliando_incompleto_continua_editavel(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados6"))
+    app = QApplication.instance() or QApplication([])
+    apply_theme(app, "Normal")
+    from ui.main_window import MainWindow
+
+    window = MainWindow()
+    window._startup_done = True
+    window.show()
+    try:
+        window.open_example()
+        for _ in range(5):
+            app.processEvents()
+        item = window.manager.add_evaluated(
+            "Incompleto", {"Area_m2": 80, "Padrao": 2, "Idade_anos": 5}
+        )
+        window.evaluation_tab.refresh()
+        window.evaluation_tab.select_evaluated_id(item["id"])
+        # Uma nova variável deixa o avaliando antigo sem valor para ela.
+        window.manager.add_column("Nova_variavel", [1.0] * window.manager.n_rows)
+        window.manager.x_config["Nova_variavel"] = {
+            "selected": True, "transformation": "x", "expected_sign": 0, "description": "",
+        }
+        window.evaluation_tab.refresh()
+        assert window.evaluation_tab.selected_id == item["id"]
+        assert window.evaluation_tab.edit_button.isEnabled()
+        assert window.evaluation_tab.detail_stack.currentIndex() == 0
+    finally:
+        window.dirty = False
+        window.close()
+        app.processEvents()

@@ -11,11 +11,12 @@ from typing import Any, Callable, Optional, Sequence
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import QEvent, QObject, QSize, Qt, QTimer
 from shiboken6 import isValid
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
-    QApplication, QHBoxLayout, QLabel, QSizePolicy, QToolButton, QVBoxLayout, QWidget,
+    QApplication, QHBoxLayout, QLabel, QScrollArea, QSizePolicy, QToolButton,
+    QVBoxLayout, QWidget,
 )
 
 from .clipboard import copy_figure
@@ -23,6 +24,71 @@ from .file_dialogs import save_file_name
 
 LOGGER = logging.getLogger(__name__)
 from .widgets import Card, button, show_error, show_info, standard_icon, tint_icon, toast
+
+
+class _WheelRouter(QObject):
+    """Rola a página quando o mouse está no gráfico; só entrega a roda ao
+    gráfico depois que ele é clicado. Clicar fora volta ao modo de rolagem."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.active_canvas: Optional[ResponsiveCanvas] = None
+
+    def eventFilter(self, obj: QObject, event: Any) -> bool:
+        if event.type() == QEvent.Type.MouseButtonPress:
+            if isinstance(obj, ResponsiveCanvas):
+                self.active_canvas = obj
+            else:
+                self.active_canvas = None
+            return False
+        if event.type() == QEvent.Type.Wheel and isinstance(obj, ResponsiveCanvas):
+            if self.active_canvas is not None and not isValid(self.active_canvas):
+                self.active_canvas = None
+            if self.active_canvas is obj:
+                return False
+            scroll = self._scroll_area(obj)
+            if scroll is None:
+                return False
+            delta = event.angleDelta().y()
+            if not delta:
+                return False
+            bar = scroll.verticalScrollBar()
+            bar.setValue(bar.value() - int(delta * 0.5))
+            event.accept()
+            return True
+        return False
+
+    @staticmethod
+    def _scroll_area(widget: QWidget) -> Optional[QScrollArea]:
+        parent = widget.parentWidget()
+        while parent is not None:
+            if isinstance(parent, QScrollArea):
+                return parent
+            parent = parent.parentWidget()
+        return None
+
+    def clear_canvas(self, canvas: ResponsiveCanvas) -> None:
+        if self.active_canvas is canvas:
+            self.active_canvas = None
+
+
+_WHEEL_ROUTER: Optional[_WheelRouter] = None
+
+
+def _install_wheel_router() -> None:
+    global _WHEEL_ROUTER
+    app = QApplication.instance()
+    if app is None:
+        return
+    if _WHEEL_ROUTER is None or _WHEEL_ROUTER.parent() is not app:
+        _WHEEL_ROUTER = _WheelRouter()
+        _WHEEL_ROUTER.setParent(app)
+        app.installEventFilter(_WHEEL_ROUTER)
+
+
+def _detach_wheel_canvas(canvas: ResponsiveCanvas) -> None:
+    if _WHEEL_ROUTER is not None:
+        _WHEEL_ROUTER.clear_canvas(canvas)
 
 
 class ResponsiveCanvas(FigureCanvasQTAgg):
@@ -156,6 +222,7 @@ class PlotCard(Card):
             figure.set_layout_engine("constrained")
         except Exception:
             pass
+        _install_wheel_router()
         canvas = ResponsiveCanvas(figure)
         canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         canvas.setMinimumHeight(310)
@@ -183,6 +250,7 @@ class PlotCard(Card):
     def clear_canvas(self) -> None:
         self._hover = None
         if self._canvas is not None:
+            _detach_wheel_canvas(self._canvas)
             self._canvas.cancel_pending()
             self._canvas.setParent(None)
             self._canvas.deleteLater()

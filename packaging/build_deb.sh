@@ -5,7 +5,7 @@ set -euo pipefail
 
 APP_NAME="SisAvalia"
 PKG_NAME="sisavalia"
-VERSION="${VERSION:-1.2.0}"
+VERSION="${VERSION:-1.2.1}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 

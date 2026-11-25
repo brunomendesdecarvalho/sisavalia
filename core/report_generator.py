@@ -408,7 +408,7 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
                       widths=["240px", "145px", "145px", "110px", "130px"], css_class="data small")
     )
     image_html = "".join(
-        f'<div class="chart"><img src="{name}" width="650"></div>'
+        f'<div class="chart"><img src="{name}" width="480"></div>'
         for name in ("aderencia", "residuos_ajustados", "qq", "hist_residuos", "cook", "mahalanobis")
         if name in images
     )
@@ -467,7 +467,7 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     <div style="page-break-before: always;"></div>
     <h2>8. Gráficos</h2>{image_html}
     <p class="note">{_h(text_about_suggestion)}</p>
-    <h2>Responsável técnico</h2>
+    <h2>9. Responsável técnico</h2>
     <p><b>Nome:</b> {_h(meta.get('technical_name', '') or 'Não informado')} &nbsp;
     <b>CREA/CAU:</b> {_h(meta.get('technical_registry', '') or 'Não informado')}</p>
     <p><b>{_h(meta.get('signature_city', '') or meta.get('city', '') or 'Local')}</b>,
@@ -675,7 +675,7 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
         if note:
             p = doc.add_paragraph(note)
             p.runs[0].bold = True
-        doc.add_heading("Amostra e variáveis", level=1)
+        doc.add_heading("1. Amostra e variáveis", level=1)
         doc.add_paragraph(
             f"Imóveis na conta: {context.manager.n_active}    Desligados: {context.manager.n_inactive}    "
             f"Usados no modelo: {fit.n_obs}    Fora por vazio: {len(fit.dropped_positions)}"
@@ -686,7 +686,7 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
             _sample_rows(context.manager, fit),
             widths=[1.3, 3.3, 3.0, 4.2, 4.8],
         )
-        doc.add_heading("Equação ajustada", level=1)
+        doc.add_heading("2. Equação ajustada", level=1)
         doc.add_paragraph("Forma estimada (Y transformado):")
         p = doc.add_paragraph(fit.equation)
         for run in p.runs:
@@ -701,12 +701,12 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
         )
         if _log_note(context.manager):
             doc.add_paragraph(_log_note(context.manager))
-        doc.add_heading("ANOVA", level=1)
+        doc.add_heading("3. ANOVA", level=1)
         _docx_table(doc, ["Fonte", "SQ", "GL", "QM", "F", "p-valor"],
                     [(r["Fonte"], _n(r["SQ"], 4), str(r["GL"]), _n(r["QM"], 4),
                       _n(r["F"], 3), _p(r["p-valor"])) for r in fit.anova_rows],
                     widths=[3.0, 3.0, 2.0, 3.0, 2.5, 3.0])
-        doc.add_heading("Coeficientes", level=1)
+        doc.add_heading("4. Coeficientes", level=1)
         coeff_rows = []
         for name in ["const"] + fit.design_names:
             display = "Intercepto" if name == "const" else name
@@ -715,8 +715,9 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
         _docx_table(doc, ["Variável", "Estimativa", "Erro padrão", "t", "p-valor"], coeff_rows,
                     widths=[5.5, 3.2, 3.2, 2.5, 3.0])
         doc.add_paragraph("O teste t dos itens de fundamentação usa somente os regressores, nunca o intercepto.")
+        doc.add_heading("5. Projeções dos avaliandos", level=1)
         for idx, result in enumerate(context.evaluations, start=1):
-            doc.add_heading(f"Avaliando {idx}: {result.name}", level=1)
+            doc.add_heading(f"Avaliando {idx}: {result.name}", level=2)
             _docx_table(doc, ["Variável", "Valor informado"],
                         [(name, _n(value, 4)) for name, value in result.values.items()],
                         widths=[8.0, 8.0])
@@ -762,7 +763,7 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
             )
             if rules:
                 doc.add_paragraph(rules)
-        doc.add_heading("Diagnóstico das premissas", level=1)
+        doc.add_heading("6. Diagnóstico das premissas", level=1)
         _docx_table(doc, ["Premissa", "Semáforo", "O que os números dizem"], _assumption_rows(diag),
                     widths=[3.5, 2.0, 10.5])
         doc.add_paragraph(diag.shapiro_text)
@@ -774,20 +775,7 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
         corr_pairs = [(a, b, _n(r, 3)) for a, b, r in diag.high_correlations] or [("Nenhum par acima de 0,80", "—", "—")]
         _docx_table(doc, ["Variável A", "Variável B", "r"], corr_pairs, widths=[6.0, 6.0, 4.0])
         doc.add_page_break()
-        doc.add_heading("Responsável técnico", level=1)
-        meta = context.manager.metadata
-        doc.add_paragraph(
-            f"Nome: {meta.get('technical_name', '') or 'Não informado'}    "
-            f"CREA/CAU: {meta.get('technical_registry', '') or 'Não informado'}"
-        )
-        doc.add_paragraph(
-            f"{meta.get('signature_city', '') or meta.get('city', '') or 'Local'}, "
-            f"{format_date_br(meta.get('reference_date', '') or meta.get('date', ''))}"
-        )
-        doc.add_paragraph("__________________________________________________________")
-        doc.add_paragraph("Assinatura do responsável técnico")
-        doc.add_page_break()
-        doc.add_heading("Tabela de resíduos", level=1)
+        doc.add_heading("7. Tabela de resíduos", level=1)
         residual_values = []
         residual_influence = []
         for row in diag.table:
@@ -807,7 +795,7 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
         _docx_table(doc, ["Imóvel", "Padronizado", "Studentizado", "Cook", "Mahalanobis"],
                     residual_influence, widths=[5.2, 3.2, 3.2, 3.2, 2.6])
         doc.add_page_break()
-        doc.add_heading("Gráficos", level=1)
+        doc.add_heading("8. Gráficos", level=1)
         for name, caption in (
             ("aderencia", "Aderência: observado × estimado"),
             ("residuos_ajustados", "Resíduos × valores ajustados"),
@@ -822,6 +810,19 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
         doc.add_paragraph(
             "A sugestão de equação não substitui o julgamento do avaliador. Confira os dados antes de usar em laudo."
         )
+        doc.add_page_break()
+        doc.add_heading("9. Responsável técnico", level=1)
+        meta = context.manager.metadata
+        doc.add_paragraph(
+            f"Nome: {meta.get('technical_name', '') or 'Não informado'}    "
+            f"CREA/CAU: {meta.get('technical_registry', '') or 'Não informado'}"
+        )
+        doc.add_paragraph(
+            f"{meta.get('signature_city', '') or meta.get('city', '') or 'Local'}, "
+            f"{format_date_br(meta.get('reference_date', '') or meta.get('date', ''))}"
+        )
+        doc.add_paragraph("__________________________________________________________")
+        doc.add_paragraph("Assinatura do responsável técnico")
         try:
             doc.save(str(target))
         except Exception as exc:

@@ -115,6 +115,8 @@ Quando já existe um avaliando selecionado, ele aparece como uma estrela vermelh
 
 Ajusta a equação com as variáveis e transformações que você escolheu na aba 1, usando somente imóveis ligados. Se faltar algum valor em Y ou X, o imóvel sai apenas daquele cálculo (exclusão pela lista completa) e o programa diz quantos saíram.
 
+Enquanto o modelo é calculado, aparece uma janela de progresso com a mensagem **Calculando o modelo... Aguarde.** Ela fecha sozinha ao terminar. Se você incluir ou retirar uma variável, o recálculo também mostra essa janela.
+
 ### Sugerir equações
 
 Testa combinações de variáveis marcadas como X e transformações **x, ln(x) e 1/x**. Dicotômica e Código alocado entram só como x. Transformações impossíveis são puladas.
@@ -225,6 +227,8 @@ Mostra, por imóvel: rótulo, observado, estimado, resíduo, resíduo relativo, 
 ### Gráficos
 
 Resíduos × ajustados, Q-Q, histograma, hastes de Cook e hastes de Mahalanobis. Todos têm **Copiar Imagem** e **Salvar Imagem**, e mostram o rótulo ao apontar o ponto.
+
+A **roda do mouse** rola a página quando o ponteiro está sobre um gráfico. Para interagir com o gráfico, clique nele; clique fora para voltar ao modo de rolagem normal.
 
 O Mahalanobis é calculado sobre as independentes na forma usada no modelo. O corte de 5% usa a distribuição Beta exata. Se a amostra for pequena demais, usa qui-quadrado e avisa na tela.
 
@@ -344,7 +348,7 @@ O relatório mostra esses campos, a equação na forma original de Y, a descriç
 
 Se você recebeu o `.deb` ou o AppImage, **não precisa instalar Python**. O programa já vem com tudo o que usa. O SisAvalia verifica os componentes ao abrir e avisa se o pacote estiver incompleto.
 
-O AppImage 1.2.0 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
+O AppImage 1.2.1 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
 
 Para **Windows**, baixe o ZIP da release, descompacte e clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
 

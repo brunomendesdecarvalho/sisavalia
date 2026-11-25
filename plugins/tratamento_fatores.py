@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDoubleSpinBox, QFileDialog, QFormLayout, QHBoxLayout,
     QLabel, QPlainTextEdit, QScrollArea, QTableWidget, QTableWidgetItem,
@@ -57,8 +57,9 @@ class FactorDialog(QDialog):
         hint.setWordWrap(True)
         hint.setObjectName("Hint")
         outer.addWidget(hint)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        scroll = self.scroll
         inner = QWidget()
         form = QVBoxLayout(inner)
         form.setContentsMargins(10, 10, 10, 10)
@@ -80,10 +81,21 @@ class FactorDialog(QDialog):
             if "area" in text or "área" in text:
                 self.area_combo.setCurrentIndex(i)
                 break
+        try:
+            manager = getattr(parent.window(), "manager", None) if parent is not None else None
+            if manager is not None and getattr(manager, "y_column", None):
+                idx = self.value_combo.findText(str(manager.y_column))
+                if idx >= 0:
+                    self.value_combo.setCurrentIndex(idx)
+        except Exception:
+            pass
+        self.value_combo.setMinimumHeight(38)
+        self.area_combo.setMinimumHeight(38)
         top.addRow("Valor total / unitário:", self.value_combo)
         top.addRow("Área (opcional):", self.area_combo)
         self.criterion = QComboBox()
         self.criterion.addItems(["±30% em torno da média", "Chauvenet"])
+        self.criterion.setMinimumHeight(38)
         top.addRow("Saneamento:", self.criterion)
         form.addLayout(top)
         factor_title = QLabel("Fatores de homogeneização")
@@ -91,8 +103,9 @@ class FactorDialog(QDialog):
         form.addWidget(factor_title)
         self.factor_table = QTableWidget(0, 3)
         self.factor_table.setHorizontalHeaderLabels(["Variável", "Fator", "Critério / observação"])
-        self.factor_table.setMinimumHeight(260)
+        self.factor_table.setMinimumHeight(280)
         self.factor_table.setAlternatingRowColors(True)
+        self.factor_table.verticalHeader().setDefaultSectionSize(42)
         self.factor_table.setAccessibleName("Fatores de homogeneização")
         form.addWidget(self.factor_table)
         self._build_factor_rows()
@@ -136,6 +149,11 @@ class FactorDialog(QDialog):
         bottom.addWidget(close)
         outer.addLayout(bottom)
         self._spins: dict[str, QDoubleSpinBox] = {}
+        QTimer.singleShot(0, lambda: self.scroll.verticalScrollBar().setValue(0))
+
+    def showEvent(self, event: Any) -> None:
+        super().showEvent(event)
+        QTimer.singleShot(0, lambda: self.scroll.verticalScrollBar().setValue(0))
 
     def _build_factor_rows(self) -> None:
         value_column = self.value_combo.currentText()
@@ -156,8 +174,10 @@ class FactorDialog(QDialog):
             spin.setValue(1.0)
             spin.setSuffix(" ×")
             spin.setToolTip("Fator de homogeneização desta variável. A faixa da norma é 0,50 a 2,00.")
+            spin.setMinimumHeight(36)
             spin.setAccessibleName(f"Fator de {column}")
             self.factor_table.setCellWidget(row, 1, spin)
+            self.factor_table.setRowHeight(row, 44)
             self._spins[column] = spin
             note = "Use 1,00 para não alterar."
             if "oferta" in column.lower():
@@ -167,6 +187,9 @@ class FactorDialog(QDialog):
         self.factor_table.setColumnWidth(0, 220)
         self.factor_table.setColumnWidth(1, 110)
         self.factor_table.setColumnWidth(2, 320)
+        for row in range(self.factor_table.rowCount()):
+            self.factor_table.setRowHeight(row, 44)
+        QTimer.singleShot(0, lambda: self.scroll.verticalScrollBar().setValue(0))
 
     def calculate(self) -> None:
         value_column = self.value_combo.currentText()

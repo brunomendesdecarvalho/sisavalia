@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import copy
+import os
 import re
+import shutil
+import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 from typing import Any, Optional
@@ -11,7 +15,8 @@ from PySide6.QtCore import QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QHBoxLayout, QLabel, QMainWindow,
-    QMenu, QMessageBox, QPushButton, QStackedWidget, QTabWidget, QToolButton,
+    QMenu, QMessageBox, QProgressDialog, QPushButton, QStackedWidget,
+    QTabWidget, QToolButton,
     QVBoxLayout, QWidget,
 )
 
@@ -118,7 +123,7 @@ class MainWindow(QMainWindow):
             apply_spec=self.apply_suggested_spec,
         )
         self.regression_tab.calculate_callback = lambda: self.recalculate_model(
-            show_errors=True, mark_dirty=True
+            show_errors=True, mark_dirty=True, show_busy=True
         )
         self.evaluation_tab = EvaluationTab(self.manager)
         self.diagnostics_tab = DiagnosticsTab(self.manager)
@@ -312,6 +317,8 @@ class MainWindow(QMainWindow):
             self.explore_tab.set_evaluation(self.current_evaluation)
         elif widget is self.regression_tab:
             self.regression_tab.set_evaluation(self.current_evaluation)
+        elif widget is self.evaluation_tab:
+            self.evaluation_tab.ensure_selection()
 
     # ------------------------------------------------------------- gerenciador
     def _install_manager(self, manager: DataManager, *, project_path: Optional[Path],
@@ -339,7 +346,7 @@ class MainWindow(QMainWindow):
         self._update_title()
         self._update_action_states()
         if manager.has_data():
-            self.recalculate_model(show_errors=False, mark_dirty=False)
+            self.recalculate_model(show_errors=False, mark_dirty=False, show_busy=True)
         else:
             # Sem tabela/linhas não há o que editar: volta aos cartões de
             # importar planilha, abrir projeto ou abrir exemplo.
@@ -546,7 +553,8 @@ class MainWindow(QMainWindow):
         return True
 
     # ----------------------------------------------------------------- modelo
-    def recalculate_model(self, *, show_errors: bool = False, mark_dirty: bool = False) -> None:
+    def recalculate_model(self, *, show_errors: bool = False, mark_dirty: bool = False,
+                          show_busy: bool = False) -> None:
         if self._recalculating:
             return
         self._recalc_timer.stop()
@@ -562,6 +570,15 @@ class MainWindow(QMainWindow):
         self._recalculating = True
         self.model_label.setText("Modelo: calculando...")
         self.model_label.setStyleSheet("color: #92400E; font-weight: 700;")
+        busy: Optional[QProgressDialog] = None
+        if show_busy:
+            busy = QProgressDialog("Calculando o modelo... Aguarde.", "", 0, 0, self)
+            busy.setWindowTitle("SisAvalia — calculando")
+            busy.setCancelButton(None)
+            busy.setWindowModality(Qt.WindowModality.WindowModal)
+            busy.setMinimumDuration(0)
+            busy.setMinimumWidth(420)
+            busy.show()
         QApplication.processEvents()
         try:
             fit = RegressionEngine.fit(self.manager)
@@ -579,6 +596,9 @@ class MainWindow(QMainWindow):
             return
         finally:
             self._recalculating = False
+            if busy is not None:
+                busy.close()
+                busy.deleteLater()
         self.fit = fit
         self.diagnostics = diagnostics
         try:
@@ -623,7 +643,7 @@ class MainWindow(QMainWindow):
 
     def _recalculate_scheduled(self) -> None:
         if self.manager.has_data():
-            self.recalculate_model(show_errors=False)
+            self.recalculate_model(show_errors=False, show_busy=True)
 
     def _on_data_changed(self, reason: str) -> None:
         if not self.manager.has_data():
@@ -681,7 +701,7 @@ class MainWindow(QMainWindow):
         self.data_tab.refresh()
         self.explore_tab.set_manager(self.manager)
         self.multivariate_tab.set_manager(self.manager)
-        self.recalculate_model(show_errors=False)
+        self.recalculate_model(show_errors=False, show_busy=True)
         self._update_status()
 
     def _on_cluster_saved(self) -> None:
@@ -802,7 +822,47 @@ class MainWindow(QMainWindow):
         close_button.setMinimumHeight(44)
         box.exec()
         if box.clickedButton() is open_button:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(path.resolve())))
+            self._open_local_file(path)
+
+    def _open_local_file(self, path: Path) -> None:
+        """Abre o relatório no aplicativo padrão, com alternativas no Linux."""
+        target = Path(path).resolve()
+        if not target.exists():
+            show_error(self, "O arquivo não foi encontrado. Gere o relatório novamente.")
+            return
+        try:
+            if os.name == "nt":
+                os.startfile(str(target))  # type: ignore[attr-defined]
+                return
+            if sys.platform == "darwin":
+                subprocess.Popen(["open", str(target)], stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL, start_new_session=True)
+                return
+            commands: list[list[str]] = []
+            for name in ("xdg-open", "kde-open5", "kde-open", "exo-open"):
+                executable = shutil.which(name)
+                if executable:
+                    commands.append([executable, str(target)])
+            gio = shutil.which("gio")
+            if gio:
+                commands.append([gio, "open", str(target)])
+            for command in commands:
+                try:
+                    subprocess.Popen(command, stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL,
+                                     start_new_session=True)
+                    return
+                except OSError:
+                    continue
+            if QDesktopServices.openUrl(QUrl.fromLocalFile(str(target))):
+                return
+        except Exception:
+            pass
+        show_info(
+            self,
+            f"Não foi possível abrir automaticamente o arquivo.\n\nEle está em:\n{target}",
+            title="Arquivo gerado",
+        )
 
     def export_spreadsheet(self) -> None:
         if not self.manager.has_data():

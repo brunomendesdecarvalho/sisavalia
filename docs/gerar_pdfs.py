@@ -31,7 +31,7 @@ from docx.shared import Cm, Pt, RGBColor
 
 DOCS = Path(__file__).resolve().parent
 ROOT = DOCS.parent
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 ICON = DOCS / "telas" / "icone_sisavalia.png"
 BLUE = RGBColor(30, 58, 138)
 DARK = RGBColor(15, 23, 42)
