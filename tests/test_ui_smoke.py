@@ -130,3 +130,18 @@ def test_sem_dados_volta_para_tela_inicial(tmp_path, monkeypatch):
         window.dirty = False
         window.close()
         app.processEvents()
+
+
+def test_dialogo_tabelas_nbr_abre(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados_nbr"))
+    app = QApplication.instance() or QApplication([])
+    from ui.nbr_tables import NBRTablesDialog
+
+    dialog = NBRTablesDialog()
+    try:
+        assert dialog.list.count() >= 9
+        assert dialog.table_widget is not None
+        assert dialog.table_widget.rowCount() > 0
+    finally:
+        dialog.close()
+        app.processEvents()

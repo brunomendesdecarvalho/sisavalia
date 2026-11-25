@@ -2,7 +2,7 @@
 
 **Público:** avaliador, engenheiro ou técnico que conhece avaliação de imóveis, mas não precisa saber programar.  
 **Objetivo:** verificar se o SisAvalia entrega o fluxo de trabalho de uma avaliação — importar, explorar, modelar, avaliar e exportar — com resultados coerentes e em linguagem compreensível.  
-**Versão:** 1.1.0
+**Versão:** 1.2.0
 **Data de referência:** novembro de 2026
 
 > **Dados de exemplo. Não use em laudo.** A amostra que acompanha o programa é fictícia e serve apenas para este roteiro.
@@ -450,11 +450,37 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 
 ### T19 — Build Windows
 
-1. Baixe o ZIP `SisAvalia-1.1.0-windows-x64.zip` da release.
+1. Baixe o ZIP `SisAvalia-1.2.0-windows-x64.zip` da release.
 2. Descompacte em uma pasta.
 3. Clique duas vezes em `SisAvalia.exe`.
 
 **Resultado esperado:** o programa abre sem terminal, sem pedir Python e mostra a tela inicial em português.
+
+**Criticidade:** Média.
+
+---
+
+### T20 — Consulta das tabelas NBR
+
+1. Abra **Ajuda Rápida**.
+2. Clique em **Tabelas NBR 14653-2**.
+3. Percorra as Tabelas 1, 2, 3, 4, 5, 6, 7, 10 e 11.
+4. Use **Copiar tabela**.
+
+**Resultado esperado:** a janela mostra as tabelas em fonte legível, com critérios, graus e notas; a tabela pode ser copiada.
+
+**Criticidade:** Média.
+
+---
+
+### T21 — Rede neural (MLP)
+
+1. Na aba **8. Plugins**, execute **Rede neural (MLP)**.
+2. Escolha Y e as variáveis X.
+3. Teste camadas, ativação, solver, alpha, épocas, parada antecipada e semente.
+4. Clique em **Treinar rede**.
+
+**Resultado esperado:** a rede treina sem travar a janela; mostra R²/MAE/RMSE de treino e teste, comparação com a regressão, curva de perda e gráfico observado × previsto. A janela deixa claro que a rede é apoio exploratório e não gera grau da NBR.
 
 **Criticidade:** Média.
 
@@ -483,6 +509,8 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 | T17 | Formulário mínimo do laudo | Alta |  |
 | T18 | Plugins de engenharia | Alta |  |
 | T19 | Build Windows | Média |  |
+| T20 | Consulta das tabelas NBR | Média |  |
+| T21 | Rede neural (MLP) | Média |  |
 
 **Conclusão:** se todos os cenários de criticidade Alta forem aprovados e o padrão brasileiro estiver correto, o SisAvalia está aceito para uso assistido. A aprovação não substitui a análise técnica do avaliador nem a aplicação da NBR 14653-2.
 

@@ -258,6 +258,7 @@ O programa procura plugins na pasta `plugins` da instalação. Plugins nativos:
 - **Tratamento por fatores**: homogeneização por fatores manuais, saneamento de discrepantes, coeficiente de variação e enquadramento nas Tabelas 3, 4 e 5.
 - **Método evolutivo e CUB**: área equivalente, custo de reprodução, depreciação Ross-Heidecke simplificada, custo de reedição e valor evolutivo.
 - **Procedimentos específicos**: liquidação forçada por VPL, desapropriação parcial antes/depois e aluguel por remuneração do capital.
+- **Rede neural (MLP)**: treina uma rede de múltiplas camadas com camadas ocultas, ativação, solver, alpha, taxa de aprendizado, agenda, épocas, parada antecipada, validação, teste, padronização e semente configuráveis. Mostra R², MAE, RMSE, MAPE, comparação com a regressão linear, curva de perda e gráfico observado × previsto. É apoio exploratório; não gera grau da NBR.
 
 Cada plugin tem botão para copiar ou salvar o resultado. Se um plugin falhar, o programa mostra uma mensagem simples e guarda o detalhe em `erros.log`.
 
@@ -328,6 +329,7 @@ O relatório mostra esses campos, a equação na forma original de Y, a descriç
 - **Ctrl+N**, **Ctrl+O** e **Ctrl+S** criam, abrem e salvam.
 - O seletor **Tamanho da fonte** no topo tem Normal (12 pt), Grande (14 pt) e Muito Grande (16 pt). A escolha fica guardada.
 - Passe o mouse sobre termos técnicos para ver explicações em linguagem simples.
+- Em **Ajuda Rápida → Tabelas NBR 14653-2**, consulte as Tabelas 1, 2, 3, 4, 5, 6, 7, 10 e 11 com os critérios, graus e pontos. As tabelas podem ser copiadas.
 
 ## 12. Se algo der errado
 
@@ -340,7 +342,7 @@ O relatório mostra esses campos, a equação na forma original de Y, a descriç
 
 Se você recebeu o `.deb` ou o AppImage, **não precisa instalar Python**. O programa já vem com tudo o que usa. O SisAvalia verifica os componentes ao abrir e avisa se o pacote estiver incompleto.
 
-O AppImage 1.1.0 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
+O AppImage 1.2.0 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
 
 Para **Windows**, baixe o ZIP da release, descompacte e clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
 

@@ -449,7 +449,10 @@ def test_equacao_original_volta_da_escala_logaritmica(fit_example):
 def test_plugins_nativos_sao_descobertos_e_calculos_funcionam():
     from core.plugin_manager import PluginManager
     names = {p.plugin.name for p in PluginManager().discover()}
-    assert {"Tratamento por fatores", "Método evolutivo e CUB", "Procedimentos específicos"} <= names
+    assert {
+        "Tratamento por fatores", "Método evolutivo e CUB",
+        "Procedimentos específicos", "Rede neural (MLP)",
+    } <= names
     from plugins._engenharia import ross_heidecke, liquidation_vpl, rent_by_capital, factor_values
     kd, residual = ross_heidecke(10, 60, "Regular")
     assert 0 < kd < 1 and residual == pytest.approx(1 - kd)
@@ -457,3 +460,32 @@ def test_plugins_nativos_sao_descobertos_e_calculos_funcionam():
     assert rent_by_capital(500000, 6)["monthly"] > 0
     result = factor_values([100, 110, 120], [1.0], criterion="±30%")
     assert result.n == 3 and result.mean > 0
+
+
+def test_rede_neural_treina_com_semente_repetivel(example: DataManager):
+    from plugins._neural import NeuralConfig, train_neural, parse_layers
+    config = NeuralConfig(
+        hidden_layers=parse_layers("16, 8"), max_iter=250, early_stopping=False,
+        test_size=0.25, random_state=7, standardize=True,
+    )
+    result = train_neural(
+        example.df, "Valor_unitario", ["Area_m2", "Padrao", "Idade_anos"], config,
+        active=[bool(v) for v in example.active],
+    )
+    second = train_neural(
+        example.df, "Valor_unitario", ["Area_m2", "Padrao", "Idade_anos"], config,
+        active=[bool(v) for v in example.active],
+    )
+    assert result.n_total == 20 and result.n_train + result.n_test == 20
+    assert result.test_r2 == pytest.approx(second.test_r2)
+    assert len(result.test_predicted) == result.n_test
+    assert len(result.loss_curve) > 0
+
+
+def test_tabelas_nbr_estao_disponiveis():
+    from ui.nbr_tables import NBR_TABLES
+    codes = {table.code for table in NBR_TABLES}
+    assert {"Tabela 1", "Tabela 2", "Tabela 3", "Tabela 4", "Tabela 5",
+            "Tabela 6", "Tabela 7", "Tabela 10", "Tabela 11"} <= codes
+    for table in NBR_TABLES:
+        assert table.rows and len(table.headers) == len(table.rows[0])

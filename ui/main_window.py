@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
         self.font_combo = QComboBox()
         self.font_combo.addItems(["Normal", "Grande", "Muito Grande"])
         self.font_combo.setCurrentText(theme)
-        self.font_combo.setMinimumWidth(180)
+        self.font_combo.setMinimumWidth(150)
         self.font_combo.setToolTip("Aumenta a letra de todas as telas. A escolha fica guardada.")
         self.font_combo.currentTextChanged.connect(self.change_theme)
         row2.addWidget(self.font_combo)
@@ -843,6 +843,10 @@ class MainWindow(QMainWindow):
         show_info(self, f"Planilha salva em:\n{target}", title="Planilha exportada")
 
     # ------------------------------------------------------------------- ajuda
+    def show_nbr_tables(self) -> None:
+        from .nbr_tables import NBRTablesDialog
+        NBRTablesDialog(self).exec()
+
     def show_help(self) -> None:
         if self._help_dialog is None:
             self._help_dialog = HelpDialog(self)

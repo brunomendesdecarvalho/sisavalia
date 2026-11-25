@@ -389,7 +389,8 @@ def make_label(text: str, *, bold: bool = False, tooltip: str = "",
 
 
 def make_table(headers: Iterable[str], *, rows: int = 0, parent: Optional[QWidget] = None,
-               editable: bool = False, stretch_last: bool = False) -> QTableWidget:
+               editable: bool = False, stretch_last: bool = False,
+               word_wrap: bool = False) -> QTableWidget:
     headers = list(headers)
     table = QTableWidget(rows, len(headers), parent)
     table.setHorizontalHeaderLabels(headers)
@@ -402,7 +403,7 @@ def make_table(headers: Iterable[str], *, rows: int = 0, parent: Optional[QWidge
     table.setSortingEnabled(False)
     table.verticalHeader().setVisible(False)
     table.horizontalHeader().setHighlightSections(False)
-    table.setWordWrap(False)
+    table.setWordWrap(word_wrap)
     if stretch_last:
         table.horizontalHeader().setStretchLastSection(True)
     return table

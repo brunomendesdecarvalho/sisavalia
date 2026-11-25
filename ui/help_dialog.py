@@ -6,6 +6,7 @@ from typing import Optional
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
 
+from .nbr_tables import NBRTablesDialog
 from .widgets import button
 
 
@@ -33,6 +34,7 @@ levar os dados, resíduos e avaliandos para o LibreOffice Calc.</li>
 <li>A aba 5 mostra se algum imóvel está puxando o resultado. Você pode desligá-lo com confirmação.</li>
 <li>O programa guarda um backup automático a cada 5 minutos. Se o computador desligar sem salvar,
 ao abrir você poderá recuperar o trabalho.</li>
+<li>Em <b>Tabelas NBR 14653-2</b> você consulta as tabelas de fundamentação, enquadramento e precisão.</li>
 <li>Não use os dados de exemplo em laudo: eles são fictícios.</li>
 </ul>
 <h3>Sobre os números</h3>
@@ -60,6 +62,12 @@ class HelpDialog(QDialog):
         browser.setAccessibleName("Passo a passo do SisAvalia")
         layout.addWidget(browser, 1)
         actions = QHBoxLayout()
+        nbr_button = button(
+            "Tabelas NBR 14653-2", "info",
+            tooltip="Abre a consulta das Tabelas 1 a 7, 10 e 11.",
+        )
+        nbr_button.clicked.connect(lambda: NBRTablesDialog(self).exec())
+        actions.addWidget(nbr_button)
         actions.addStretch(1)
         close_button = button("Fechar", "close")
         close_button.clicked.connect(self.close)
