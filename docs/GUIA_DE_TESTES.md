@@ -2,7 +2,7 @@
 
 **Público:** avaliador, engenheiro ou técnico que conhece avaliação de imóveis, mas não precisa saber programar.  
 **Objetivo:** verificar se o SisAvalia entrega o fluxo de trabalho de uma avaliação — importar, explorar, modelar, avaliar e exportar — com resultados coerentes e em linguagem compreensível.  
-**Versão:** 1.2.1
+**Versão:** 1.2.2
 **Data de referência:** novembro de 2026
 
 > **Dados de exemplo. Não use em laudo.** A amostra que acompanha o programa é fictícia e serve apenas para este roteiro.
@@ -450,7 +450,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 
 ### T19 — Build Windows
 
-1. Baixe o ZIP `SisAvalia-1.2.1-windows-x64.zip` da release.
+1. Baixe o ZIP `SisAvalia-1.2.2-windows-x64.zip` da release.
 2. Descompacte em uma pasta.
 3. Clique duas vezes em `SisAvalia.exe`.
 
@@ -530,3 +530,21 @@ Ao encontrar um comportamento inesperado, registre:
 Essas informações permitem corrigir o problema sem exigir conhecimento de programação do avaliador.
 
 > Este guia é de aceitação funcional. Os testes automatizados do núcleo e os detalhes de compilação estão no [Guia técnico de testes](GUIA_DE_TESTES_TECNICO.md).
+
+
+### T22 — Laudo DOCX no esqueleto ABNT
+
+1. Abra o exemplo, calcule o modelo e inclua um avaliando.
+2. Exporte em **DOCX**.
+3. Confira a capa, o resumo executivo e o sumário.
+4. Percorra os títulos **1. IDENTIFICAÇÃO DO SOLICITANTE (10.1 a)** até **13. QUALIFICAÇÃO LEGAL E ASSINATURA (10.1 m)**, além de **14. REFERÊNCIAS** e **15. ANEXOS**.
+5. Verifique margens de 3 cm no topo/esquerda e 2 cm na direita/baixo, Arial 12, entrelinha 1,5 e texto justificado.
+6. Um campo vazio deve mostrar **Não informado. Preencher no laudo.**; as Referências devem ter exemplos.
+
+### T23 — Criar e configurar plugins
+
+1. Abra **8. Plugins**.
+2. Clique em **Criar Plugin**, informe um nome e confirme o caminho mostrado.
+3. Clique em **Atualizar Plugins** e veja o novo plugin na lista.
+4. Clique em **Configurar pasta**, escolha uma pasta com outro plugin e confira que os plugins anteriores continuam na lista.
+5. Feche e abra o programa: a pasta extra deve continuar configurada.

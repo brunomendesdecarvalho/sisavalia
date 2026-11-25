@@ -489,3 +489,51 @@ def test_tabelas_nbr_estao_disponiveis():
             "Tabela 6", "Tabela 7", "Tabela 10", "Tabela 11"} <= codes
     for table in NBR_TABLES:
         assert table.rows and len(table.headers) == len(table.rows[0])
+
+
+def test_laudo_docx_segue_estrutura_abnt(example: DataManager, fit_example, tmp_path):
+    from core.report_generator import generate_docx, make_context
+    from core.evaluation import evaluate_item
+    from docx import Document
+    manager = example
+    item = manager.add_evaluated("A", VALS)
+    result = evaluate_item(manager, fit_example, item)
+    context = make_context("Laudo ABNT", manager, fit_example, [result])
+    target = generate_docx(context, tmp_path / "laudo_abnt.docx")
+    doc = Document(target)
+    headings = [p.text for p in doc.paragraphs if p.style.name.startswith("Heading")]
+    for letter in "abcdefghijklm":
+        assert any(f"(10.1 {letter})" in h for h in headings), letter
+    assert "14. REFERÊNCIAS" in headings
+    assert "15. ANEXOS" in headings
+    section = doc.sections[0]
+    assert section.top_margin.cm == pytest.approx(3.0, abs=0.02)
+    assert section.left_margin.cm == pytest.approx(3.0, abs=0.02)
+    assert doc.styles["Normal"].font.size.pt == pytest.approx(12.0)
+    assert doc.styles["Normal"].paragraph_format.line_spacing == pytest.approx(1.5)
+
+
+def test_plugin_manager_cria_esqueleto_e_descobre(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados_plugins"))
+    from core.plugin_manager import PluginManager
+    manager = PluginManager()
+    target = manager.create_plugin_template("Teste automático")
+    assert target.exists() and target.suffix == ".py"
+    text = target.read_text(encoding="utf-8")
+    assert "class TesteAutomaticoPlugin(BasePlugin)" in text
+    assert "def run(" in text
+    names = {p.plugin.name for p in manager.discover()}
+    assert "Teste automático" in names
+
+
+def test_plugin_manager_pasta_extra_persiste_sem_remover(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados_pastas"))
+    from core.plugin_manager import PluginManager
+    extra = tmp_path / "meus_plugins"
+    extra.mkdir()
+    manager = PluginManager()
+    manager.add_plugin_directory(extra)
+    assert extra.resolve() in manager.plugin_directories()
+    other = PluginManager()
+    assert extra.resolve() in other.plugin_directories()
+    assert other.plugin_directories()[0].name == "plugins"

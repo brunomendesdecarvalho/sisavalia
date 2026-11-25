@@ -5,14 +5,18 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication, QFrame, QHBoxLayout, QInputDialog, QLabel, QProgressDialog,
+    QScrollArea, QVBoxLayout, QWidget,
+)
 
 from core.data_manager import DataManager
 from core.plugin_manager import PluginInfo, PluginManager
 from .clipboard import copy_text
+from .file_dialogs import choose_directory
 from .widgets import (
     Banner, Card, button, make_table, readonly_item, report_unexpected_error,
-    show_info, toast,
+    show_error, show_info, toast,
 )
 
 
@@ -52,17 +56,30 @@ class PluginsTab(QWidget):
         root.addWidget(self.alert)
         card = Card(title="Plugins instalados")
         actions = QHBoxLayout()
-        self.refresh_button = button("Procurar plugins", "refresh")
+        self.refresh_button = button("Atualizar Plugins", "refresh",
+                                      tooltip="Procura de novo nas pastas de plugins, sem remover os existentes.")
         self.run_button = button("Executar plugin", "play", primary=True)
         self.copy_button = button("Copiar lista", "copy")
-        self.refresh_button.clicked.connect(self.refresh)
+        self.create_button = button("Criar Plugin", "plugin",
+                                    tooltip="Cria um arquivo Python com um esqueleto de plugin.")
+        self.folder_button = button("Configurar pasta", "open",
+                                    tooltip="Adiciona uma pasta de plugins, mantendo as pastas atuais.")
+        self.refresh_button.clicked.connect(self.update_plugins)
         self.run_button.clicked.connect(self.run_selected)
         self.copy_button.clicked.connect(self.copy_list)
+        self.create_button.clicked.connect(self.create_plugin)
+        self.folder_button.clicked.connect(self.configure_folder)
         actions.addWidget(self.refresh_button)
         actions.addWidget(self.run_button)
+        actions.addWidget(self.create_button)
+        actions.addWidget(self.folder_button)
         actions.addWidget(self.copy_button)
         actions.addStretch(1)
         card.add_layout(actions)
+        self.folder_label = QLabel("")
+        self.folder_label.setObjectName("Hint")
+        self.folder_label.setWordWrap(True)
+        card.add(self.folder_label)
         self.table = make_table(["Plugin", "O que faz", "Arquivo"])
         self.table.setMinimumHeight(280)
         self.table.itemSelectionChanged.connect(self._selection_changed)
@@ -84,8 +101,76 @@ class PluginsTab(QWidget):
     def set_manager(self, manager: DataManager) -> None:
         self.manager = manager
 
+    def _update_folder_label(self) -> None:
+        folders = [str(path) for path in self.plugin_manager.plugin_directories()]
+        self.folder_label.setText("Pastas procuradas:\n" + "\n".join(f"• {f}" for f in folders))
+
+    def update_plugins(self) -> None:
+        busy = QProgressDialog("Buscando plugins nas pastas configuradas...", "", 0, 0, self)
+        busy.setWindowTitle("Atualizando plugins")
+        busy.setCancelButton(None)
+        busy.setWindowModality(Qt.WindowModality.WindowModal)
+        busy.setMinimumDuration(0)
+        busy.show()
+        QApplication.processEvents()
+        try:
+            self.refresh()
+        finally:
+            busy.close()
+            busy.deleteLater()
+        if self.plugins:
+            toast(self, f"{len(self.plugins)} plugin(s) encontrado(s).")
+        else:
+            toast(self, "Nenhum plugin encontrado.")
+
+    def create_plugin(self) -> None:
+        name, ok = QInputDialog.getText(
+            self, "Criar Plugin", "Nome do novo plugin:",
+            text="Meu plugin",
+        )
+        if not ok:
+            return
+        name = name.strip()
+        if not name:
+            show_error(self, "Digite um nome para o plugin.")
+            return
+        try:
+            target = self.plugin_manager.create_plugin_template(name)
+        except Exception as exc:
+            show_error(self, f"Não foi possível criar o plugin: {exc}")
+            return
+        self._update_folder_label()
+        self.refresh()
+        show_info(
+            self,
+            f"Plugin criado em:\n{target}\n\n"
+            "Abra o arquivo em um editor de texto para implementar o seu cálculo. "
+            "Use Atualizar Plugins para carregá-lo.",
+            title="Plugin criado",
+        )
+
+    def configure_folder(self) -> None:
+        start = str(self.plugin_manager.user_plugin_dir())
+        folder = choose_directory(self, "Escolher pasta de plugins", start)
+        if not folder:
+            return
+        try:
+            chosen = self.plugin_manager.add_plugin_directory(folder)
+        except Exception as exc:
+            show_error(self, f"Não foi possível configurar a pasta: {exc}")
+            return
+        self._update_folder_label()
+        self.refresh()
+        show_info(
+            self,
+            f"Pasta adicionada:\n{chosen}\n\n"
+            "As pastas anteriores e os plugins existentes foram mantidos.",
+            title="Pasta de plugins",
+        )
+
     def refresh(self) -> None:
         self.plugins = self.plugin_manager.discover()
+        self._update_folder_label()
         self.table.setRowCount(len(self.plugins))
         for row, info in enumerate(self.plugins):
             self.table.setItem(row, 0, readonly_item(info.plugin.name, bold=True))

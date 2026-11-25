@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import json
+import re
 import sys
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,16 +25,118 @@ class PluginInfo:
 
 
 class PluginManager:
+    CONFIG_KEY = "plugin_directories"
+
     def __init__(self) -> None:
         self.plugins: list[PluginInfo] = []
         self.errors: list[str] = []
+        self.extra_dirs: list[Path] = self._load_extra_dirs()
+
+    @staticmethod
+    def _config_file() -> Path:
+        return app_data_dir() / "config.json"
+
+    def _load_extra_dirs(self) -> list[Path]:
+        try:
+            raw = json.loads(self._config_file().read_text(encoding="utf-8"))
+            values = raw.get(self.CONFIG_KEY, [])
+            if not isinstance(values, list):
+                return []
+            result: list[Path] = []
+            for value in values:
+                path = Path(str(value)).expanduser()
+                if path.is_dir() and path not in result:
+                    result.append(path)
+            return result
+        except Exception:
+            return []
+
+    def _save_extra_dirs(self) -> None:
+        config_file = self._config_file()
+        try:
+            config: dict[str, Any] = {}
+            if config_file.exists():
+                loaded = json.loads(config_file.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    config = loaded
+            config[self.CONFIG_KEY] = [str(path) for path in self.extra_dirs]
+            config_file.parent.mkdir(parents=True, exist_ok=True)
+            config_file.write_text(json.dumps(config, ensure_ascii=False, indent=1), encoding="utf-8")
+        except OSError:
+            return
 
     def plugin_directories(self) -> list[Path]:
         dirs: list[Path] = [resource_path("plugins")]
-        extra = app_data_dir() / "plugins"
-        if extra not in dirs:
-            dirs.append(extra)
+        user = app_data_dir() / "plugins"
+        if user not in dirs:
+            dirs.append(user)
+        for extra in self.extra_dirs:
+            if extra.is_dir() and extra not in dirs:
+                dirs.append(extra)
         return dirs
+
+    def user_plugin_dir(self) -> Path:
+        if self.extra_dirs:
+            folder = self.extra_dirs[0]
+        else:
+            folder = app_data_dir() / "plugins"
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder
+
+    def add_plugin_directory(self, path: str | Path) -> Path:
+        folder = Path(path).expanduser().resolve()
+        if not folder.is_dir():
+            raise ValueError("A pasta escolhida não existe.")
+        if folder not in self.extra_dirs:
+            self.extra_dirs.append(folder)
+            self._save_extra_dirs()
+        return folder
+
+    def create_plugin_template(self, display_name: str) -> Path:
+        name = str(display_name).strip() or "Meu plugin"
+        ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
+        stem = re.sub(r"[^a-z0-9_]+", "_", ascii_name.lower()).strip("_") or "meu_plugin"
+        if stem[0].isdigit():
+            stem = "plugin_" + stem
+        class_name = "".join(part.capitalize() for part in stem.split("_")) + "Plugin"
+        folder = self.user_plugin_dir()
+        target = folder / f"{stem}.py"
+        counter = 2
+        while target.exists():
+            target = folder / f"{stem}_{counter}.py"
+            counter += 1
+        description = f"Plugin criado pelo SisAvalia: {name}."
+        template = f"""# Plugin {name} — esqueleto criado pelo SisAvalia.
+# Edite este arquivo. O PluginManager procura classes que herdem de BasePlugin.
+
+from __future__ import annotations
+
+from typing import Any
+
+import pandas as pd
+from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
+
+from core.plugin_base import BasePlugin
+from ui.widgets import button
+
+
+class {class_name}(BasePlugin):
+    name = {name!r}
+    description = {description!r}
+
+    def run(self, dataframe: pd.DataFrame, parent_widget: Any) -> Any:
+        dialog = QDialog(parent_widget)
+        dialog.setWindowTitle(self.name)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel(f"Plugin {name} em execução. Linhas: {{len(dataframe)}}."))
+        close = button("Fechar", "close")
+        close.clicked.connect(dialog.reject)
+        layout.addWidget(close)
+        dialog.exec()
+        return {{"linhas": len(dataframe)}}
+"""
+        target.write_text(template, encoding="utf-8")
+        return target
 
     def discover(self) -> list[PluginInfo]:
         self.plugins = []

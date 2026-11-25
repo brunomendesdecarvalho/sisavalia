@@ -256,7 +256,7 @@ Os valores são fictícios. Não use em laudo.
 
 ## 9. Aba 8 — Plugins
 
-O programa procura plugins na pasta `plugins` da instalação. Plugins nativos:
+O programa procura plugins na pasta `plugins` da instalação, na pasta de plugins do usuário e em todas as pastas extras que você configurar. Os plugins nativos:
 
 - **Resumo estatístico**: mínimo, máximo, média, mediana, desvio padrão e vazios das colunas numéricas.
 - **Tratamento por fatores**: homogeneização por fatores manuais, saneamento de discrepantes, coeficiente de variação e enquadramento nas Tabelas 3, 4 e 5.
@@ -300,6 +300,28 @@ Clique em **Exportar Relatório**. Escolha:
 - onde guardar.
 
 O relatório completo traz metadados, amostra, equação, ANOVA, coeficientes, projeção de cada avaliando, IC, predição, arbítrio, valor adotado, justificativa, fundamentação, precisão, extrapolação, premissas, tabela de resíduos e gráficos.
+
+O **PDF** mantém a sequência de dados do programa e usa margens ABNT (3 cm no topo e à esquerda, 2 cm à direita e embaixo), fonte maior, entrelinha 1,5 e texto justificado. Os gráficos são dimensionados para não cortar rótulos.
+
+O **DOCX** é um laudo completo no esqueleto da NBR 14653-2, seção 10.1, com capa, resumo executivo, sumário e os tópicos:
+
+1. identificação do solicitante (10.1 a);
+2. finalidade (10.1 b);
+3. objetivo (10.1 c);
+4. pressupostos, ressalvas e fatores limitantes (10.1 d);
+5. identificação e caracterização do imóvel avaliando (10.1 e);
+6. diagnóstico do mercado (10.1 f);
+7. métodos e procedimentos (10.1 g);
+8. especificação da avaliação (10.1 h);
+9. planilha dos dados utilizados (10.1 i);
+10. variáveis do modelo e critérios (10.1 j);
+11. tratamento dos dados e resultado (10.1 k);
+12. resultado da avaliação e data de referência (10.1 l);
+13. qualificação legal e assinatura (10.1 m);
+14. referências;
+15. anexos.
+
+O DOCX usa A4, margens 3/2 cm, Arial 12, entrelinha 1,5, texto justificado, recuo de primeira linha e número de página no alto à direita. Tópicos sem dado ficam com o título e a indicação **Não informado. Preencher no laudo.**; Referências e Anexos já saem com um esqueleto de exemplo para você completar.
 
 O resumo traz equação, estimativa, IC, valor adotado, graus e gráfico de aderência em uma página.
 
@@ -348,7 +370,7 @@ O relatório mostra esses campos, a equação na forma original de Y, a descriç
 
 Se você recebeu o `.deb` ou o AppImage, **não precisa instalar Python**. O programa já vem com tudo o que usa. O SisAvalia verifica os componentes ao abrir e avisa se o pacote estiver incompleto.
 
-O AppImage 1.2.1 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
+O AppImage 1.2.2 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
 
 Para **Windows**, baixe o ZIP da release, descompacte e clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
 

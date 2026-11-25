@@ -24,6 +24,7 @@ REQUIRED_MODULES = (
     ("matplotlib", "matplotlib"),
     ("openpyxl", "openpyxl"),
     ("docx", "python-docx"),
+    ("core.abnt_docx", "core/abnt_docx.py"),
     ("xlrd", "xlrd"),
 )
 

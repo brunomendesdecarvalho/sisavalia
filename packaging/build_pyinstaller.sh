@@ -80,6 +80,7 @@ python3 -m PyInstaller \
     --exclude-module nbformat \
     --exclude-module nbconvert \
     --hidden-import xlrd \
+    --hidden-import core.abnt_docx \
     --hidden-import pandas.io.excel._xlrd \
     --hidden-import pandas.io.excel._openpyxl \
     --hidden-import sklearn.neural_network \

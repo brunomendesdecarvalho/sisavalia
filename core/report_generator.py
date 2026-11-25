@@ -408,7 +408,7 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
                       widths=["240px", "145px", "145px", "110px", "130px"], css_class="data small")
     )
     image_html = "".join(
-        f'<div class="chart"><img src="{name}" width="480"></div>'
+        f'<div class="chart"><img src="{name}" width="420"></div>'
         for name in ("aderencia", "residuos_ajustados", "qq", "hist_residuos", "cook", "mahalanobis")
         if name in images
     )
@@ -420,10 +420,12 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
         "Confira os dados e o enquadramento antes de usar em laudo."
     )
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    body {{ font-family: 'DejaVu Sans', sans-serif; font-size: 10pt; color: #0f172a; }}
-    h1 {{ font-size: 19pt; margin: 0 0 2mm 0; color: #1e3a8a; }}
-    h2 {{ font-size: 13pt; margin: 6mm 0 2mm 0; color: #1e3a8a; border-bottom: 1px solid #cbd5e1; }}
-    h3 {{ font-size: 11pt; margin: 4mm 0 1.5mm 0; color: #334155; }}
+    body {{ font-family: 'DejaVu Sans', sans-serif; font-size: 11pt; line-height: 1.5; color: #0f172a; text-align: justify; }}
+    p {{ margin: 0 0 6pt 0; text-indent: 1.25cm; }}
+    p.subtitle, p.small, p.note, .equation, .chart, td, th {{ text-indent: 0; }}
+    h1 {{ font-size: 16pt; margin: 0 0 4mm 0; color: #1e3a8a; text-align: left; }}
+    h2 {{ font-size: 13pt; margin: 7mm 0 3mm 0; color: #1e3a8a; border-bottom: 1px solid #cbd5e1; text-align: left; }}
+    h3 {{ font-size: 11.5pt; margin: 5mm 0 2mm 0; color: #334155; text-align: left; }}
     .subtitle {{ color: #475569; font-size: 9pt; margin-top: 0; }}
     table {{ border-collapse: collapse; width: 100%; margin: 2mm 0 3mm 0; }}
     th {{ background: #e2e8f0; text-align: left; padding: 2px 4px; font-size: 9pt; }}
@@ -433,7 +435,6 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     .warning {{ background: #fef2f2; border-left: 3px solid #dc2626; padding: 2mm; }}
     .equation {{ background: #eff6ff; border: 1px solid #bfdbfe; padding: 3mm; font-size: 11pt; }}
     .chart {{ margin: 4mm 0; page-break-inside: avoid; }}
-    .chart img {{ width: 90%; }}
     .section {{ page-break-inside: auto; }}
     .kpi {{ background: #f0fdf4; border: 1px solid #bbf7d0; padding: 3mm; font-size: 11pt; }}
     </style></head><body>
@@ -512,10 +513,10 @@ def generate_pdf(context: ReportContext, path: str | Path, *, summary: bool = Fa
         printer.setOutputFileName(str(target))
         printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
         printer.setPageOrientation(QPageLayout.Orientation.Portrait)
-        printer.setPageMargins(QMarginsF(14, 14, 14, 14), QPageLayout.Unit.Millimeter)
+        printer.setPageMargins(QMarginsF(30, 30, 20, 20), QPageLayout.Unit.Millimeter)
         page_size = printer.pageRect(QPrinter.Unit.Point).size()
         if summary:
-            for width, font_pt in ((580, 10.5), (540, 10.0), (500, 9.5), (460, 9.0), (420, 8.5)):
+            for width, font_pt in ((460, 10.5), (430, 10.0), (400, 9.5), (370, 9.0), (340, 8.5)):
                 html_summary = _summary_html(context, images, image_width=width, font_pt=font_pt)
                 doc.setHtml(html_summary)
                 doc.setPageSize(QSizeF(page_size))
@@ -545,26 +546,36 @@ def _set_cell_shading(cell: Any, color: str) -> None:
 
 
 def _docx_table(doc: Document, headers: Sequence[str], rows: Sequence[Sequence[Any]],
-                widths: Optional[Sequence[float]] = None) -> None:
+                widths: Optional[Sequence[float]] = None, font_size: float = 9.0) -> None:
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = False
     hdr = table.rows[0].cells
     for i, text in enumerate(headers):
         hdr[i].text = str(text)
         _set_cell_shading(hdr[i], "E2E8F0")
         for p in hdr[i].paragraphs:
+            p.paragraph_format.first_line_indent = Cm(0)
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
             for run in p.runs:
                 run.bold = True
-                run.font.size = Pt(9)
+                run.font.name = "Arial"
+                run.font.size = Pt(font_size)
     for row in rows:
         cells = table.add_row().cells
         for i, value in enumerate(row):
             cells[i].text = "" if value is None else str(value)
             for p in cells[i].paragraphs:
+                p.paragraph_format.first_line_indent = Cm(0)
+                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                 for run in p.runs:
-                    run.font.size = Pt(9)
+                    run.font.name = "Arial"
+                    run.font.size = Pt(font_size)
     if widths:
+        for i, width in enumerate(widths):
+            if i < len(table.columns):
+                table.columns[i].width = Cm(width)
         for row in table.rows:
             for i, width in enumerate(widths):
                 if i < len(row.cells):
@@ -577,6 +588,7 @@ def _docx_add_image(doc: Document, data: bytes, width_cm: float = 16.0) -> None:
         doc.add_picture(io.BytesIO(data), width=Cm(width_cm))
         last = doc.paragraphs[-1]
         last.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        last.paragraph_format.first_line_indent = Cm(0)
     except Exception as exc:
         LOGGER.warning("Figura não incluída no DOCX: %s", exc)
 
@@ -668,165 +680,8 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
             except Exception as exc:
                 raise ReportError("Não foi possível gravar o arquivo DOCX. Confira a pasta escolhida.") from exc
             return target
-        doc.add_paragraph(f"Gerado em {context.generated_at}")
-        doc.add_heading("Metadados do trabalho", level=1)
-        _docx_table(doc, ["Campo", "Conteúdo"], _metadata_rows(context.manager), widths=[4.5, 12.5])
-        note = str(context.manager.metadata.get("sample_note", "") or "")
-        if note:
-            p = doc.add_paragraph(note)
-            p.runs[0].bold = True
-        doc.add_heading("1. Amostra e variáveis", level=1)
-        doc.add_paragraph(
-            f"Imóveis na conta: {context.manager.n_active}    Desligados: {context.manager.n_inactive}    "
-            f"Usados no modelo: {fit.n_obs}    Fora por vazio: {len(fit.dropped_positions)}"
-        )
-        _docx_table(
-            doc,
-            ["Papel", "Variável", "Tipo", "Transformação / sinal", "Descrição / critério"],
-            _sample_rows(context.manager, fit),
-            widths=[1.3, 3.3, 3.0, 4.2, 4.8],
-        )
-        doc.add_heading("2. Equação ajustada", level=1)
-        doc.add_paragraph("Forma estimada (Y transformado):")
-        p = doc.add_paragraph(fit.equation)
-        for run in p.runs:
-            run.font.size = Pt(10)
-        doc.add_paragraph("Forma não transformada da variável dependente (para o laudo):")
-        p = doc.add_paragraph(fit.equation_original)
-        for run in p.runs:
-            run.font.size = Pt(10)
-        doc.add_paragraph(
-            f"R²: {_n(fit.rsquared, 4)}    R² ajustado: {_n(fit.rsquared_adj, 4)}    "
-            f"Erro padrão dos resíduos: {_n(fit.scale, 4)}"
-        )
-        if _log_note(context.manager):
-            doc.add_paragraph(_log_note(context.manager))
-        doc.add_heading("3. ANOVA", level=1)
-        _docx_table(doc, ["Fonte", "SQ", "GL", "QM", "F", "p-valor"],
-                    [(r["Fonte"], _n(r["SQ"], 4), str(r["GL"]), _n(r["QM"], 4),
-                      _n(r["F"], 3), _p(r["p-valor"])) for r in fit.anova_rows],
-                    widths=[3.0, 3.0, 2.0, 3.0, 2.5, 3.0])
-        doc.add_heading("4. Coeficientes", level=1)
-        coeff_rows = []
-        for name in ["const"] + fit.design_names:
-            display = "Intercepto" if name == "const" else name
-            coeff_rows.append((display, format_coefficient(fit.params[name]), _n(fit.bse[name], 4),
-                               _n(fit.tvalues[name], 3), _p(fit.pvalues[name])))
-        _docx_table(doc, ["Variável", "Estimativa", "Erro padrão", "t", "p-valor"], coeff_rows,
-                    widths=[5.5, 3.2, 3.2, 2.5, 3.0])
-        doc.add_paragraph("O teste t dos itens de fundamentação usa somente os regressores, nunca o intercepto.")
-        doc.add_heading("5. Projeções dos avaliandos", level=1)
-        for idx, result in enumerate(context.evaluations, start=1):
-            doc.add_heading(f"Avaliando {idx}: {result.name}", level=2)
-            _docx_table(doc, ["Variável", "Valor informado"],
-                        [(name, _n(value, 4)) for name, value in result.values.items()],
-                        widths=[8.0, 8.0])
-            proj_rows = [
-                ("Estimativa pontual", _n(result.prediction.point, 2)),
-                ("IC 80% da média", f"{_n(result.prediction.ci_low, 2)} a {_n(result.prediction.ci_high, 2)}"),
-                ("IP 80% (preço)", f"{_n(result.prediction.pi_low, 2)} a {_n(result.prediction.pi_high, 2)}"),
-                ("Amplitude do IC", _percent(result.prediction.amplitude_pct, 1)),
-                ("Grau de precisão", result.prediction.precision_degree),
-                ("Intervalo usado no valor adotado", result.interval_label),
-                ("Intervalo admissível (IC/IP ∩ arbítrio)",
-                 f"{_n(result.display_admissible_low, 2)} a {_n(result.display_admissible_high, 2)}"),
-                ("Campo de arbítrio (±15%)",
-                 f"{_n(result.arbitrio_low, 2)} a {_n(result.arbitrio_high, 2)}"),
-                ("Valor adotado", _n(result.adopted, 2)),
-                ("Justificativa", result.justification or "Não informada"),
-            ]
-            _docx_table(doc, ["Resultado", "Valor"], proj_rows, widths=[8.0, 8.0])
-            doc.add_paragraph(
-                f"Grau de fundamentação: {result.nbr.final_degree}    Pontuação: {result.nbr.total_points}    "
-                f"Grau de precisão: {result.nbr.precision_degree}"
-            )
-            if result.nbr.cap_explanation:
-                doc.add_paragraph(result.nbr.cap_explanation)
-            _docx_table(doc, ["Item", "O que verifica", "Grau", "Pontos", "Explicação"],
-                        _nbr_item_rows(result.nbr), widths=[1.2, 3.6, 1.5, 1.4, 8.3])
-            try:
-                elast = [(r.get("display", ""), r.get("kind", ""), r.get("text", ""))
-                         for r in fit.elasticity_rows(result.values)]
-            except Exception:
-                elast = []
-            if elast:
-                doc.add_heading("Elasticidades no ponto", level=2)
-                _docx_table(doc, ["Variável", "Tipo", "Elasticidade / efeito"],
-                            elast, widths=[4.0, 3.0, 9.0])
-            _docx_table(doc, ["Variável", "Avaliando", "Amostra ativa", "Situação", "Aceitável?", "Afastamento"],
-                        _extrapolation_rows(result), widths=[3.2, 2.2, 3.4, 2.0, 2.0, 3.2])
-            rules = " ".join(
-                f"{r.variable}: {r.limit_text}; estimativa na fronteira "
-                f"{_n(r.estimate_pulled, 2) if r.estimate_pulled is not None else '—'}"
-                + (f"; afastamento {_n(r.distance_pct, 1)}%." if r.distance_pct is not None else ".")
-                for r in result.nbr.extrapolation if r.situation != "dentro"
-            )
-            if rules:
-                doc.add_paragraph(rules)
-        doc.add_heading("6. Diagnóstico das premissas", level=1)
-        _docx_table(doc, ["Premissa", "Semáforo", "O que os números dizem"], _assumption_rows(diag),
-                    widths=[3.5, 2.0, 10.5])
-        doc.add_paragraph(diag.shapiro_text)
-        doc.add_paragraph(diag.independence.text)
-        doc.add_paragraph(diag.multicollinearity.text)
-        _docx_table(doc, ["Variável", "VIF"],
-                    [(name, _n(value, 3) if math.isfinite(value) else "muito alto") for name, value in diag.vif.items()],
-                    widths=[8.0, 8.0])
-        corr_pairs = [(a, b, _n(r, 3)) for a, b, r in diag.high_correlations] or [("Nenhum par acima de 0,80", "—", "—")]
-        _docx_table(doc, ["Variável A", "Variável B", "r"], corr_pairs, widths=[6.0, 6.0, 4.0])
-        doc.add_page_break()
-        doc.add_heading("7. Tabela de resíduos", level=1)
-        residual_values = []
-        residual_influence = []
-        for row in diag.table:
-            residual_values.append((
-                row.label, _n(row.observed, 2), _n(row.estimated, 2), _n(row.residual, 2),
-                _percent(row.relative_pct, 1),
-            ))
-            residual_influence.append((
-                row.label, _n(row.standardized, 3), _n(row.studentized, 3),
-                _n(row.cook, 4), _n(row.mahalanobis, 3),
-            ))
-        doc.add_heading("Valores observados, estimados e resíduos", level=2)
-        _docx_table(doc, ["Imóvel", "Observado", "Estimado", "Resíduo", "Relativo"],
-                    residual_values, widths=[5.2, 3.2, 3.2, 3.2, 2.6])
-        doc.add_page_break()
-        doc.add_heading("Padronizado, studentizado, Cook e Mahalanobis", level=2)
-        _docx_table(doc, ["Imóvel", "Padronizado", "Studentizado", "Cook", "Mahalanobis"],
-                    residual_influence, widths=[5.2, 3.2, 3.2, 3.2, 2.6])
-        doc.add_page_break()
-        doc.add_heading("8. Gráficos", level=1)
-        for name, caption in (
-            ("aderencia", "Aderência: observado × estimado"),
-            ("residuos_ajustados", "Resíduos × valores ajustados"),
-            ("qq", "Q-Q dos resíduos"),
-            ("hist_residuos", "Histograma dos resíduos"),
-            ("cook", "Distância de Cook"),
-            ("mahalanobis", "Distância de Mahalanobis"),
-        ):
-            if name in images:
-                doc.add_paragraph(caption)
-                _docx_add_image(doc, images[name], 16.0)
-        doc.add_paragraph(
-            "A sugestão de equação não substitui o julgamento do avaliador. Confira os dados antes de usar em laudo."
-        )
-        doc.add_page_break()
-        doc.add_heading("9. Responsável técnico", level=1)
-        meta = context.manager.metadata
-        doc.add_paragraph(
-            f"Nome: {meta.get('technical_name', '') or 'Não informado'}    "
-            f"CREA/CAU: {meta.get('technical_registry', '') or 'Não informado'}"
-        )
-        doc.add_paragraph(
-            f"{meta.get('signature_city', '') or meta.get('city', '') or 'Local'}, "
-            f"{format_date_br(meta.get('reference_date', '') or meta.get('date', ''))}"
-        )
-        doc.add_paragraph("__________________________________________________________")
-        doc.add_paragraph("Assinatura do responsável técnico")
-        try:
-            doc.save(str(target))
-        except Exception as exc:
-            raise ReportError("Não foi possível gravar o arquivo DOCX. Confira a pasta escolhida.") from exc
+        from .abnt_docx import write_abnt_docx
+        return write_abnt_docx(doc, context, target, images)
     except ReportError:
         raise
     except Exception as exc:

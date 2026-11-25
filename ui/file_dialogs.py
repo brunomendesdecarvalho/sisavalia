@@ -73,3 +73,25 @@ def save_file_name(parent: Optional[QWidget], title: str, start: str, filters: s
         selected = dialog.selectedFiles()
         return selected[0] if selected else ""
     return ""
+
+
+def choose_directory(parent: Optional[QWidget], title: str, start: str) -> str:
+    """Seletor de pasta com o mesmo tema claro do restante da interface."""
+    dialog = ThemedFileDialog(parent)
+    dialog.setWindowTitle(title)
+    dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+    dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
+    dialog.setFileMode(QFileDialog.FileMode.Directory)
+    dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
+    dialog.setLabelText(QFileDialog.DialogLabel.LookIn, "Pasta:")
+    dialog.setLabelText(QFileDialog.DialogLabel.Accept, "Escolher pasta")
+    dialog.setLabelText(QFileDialog.DialogLabel.Reject, "Cancelar")
+    start_path = Path(start)
+    if start_path.is_dir():
+        dialog.setDirectory(str(start_path))
+    else:
+        dialog.setDirectory(str(Path.home()))
+    if dialog.exec() == QFileDialog.DialogCode.Accepted:
+        selected = dialog.selectedFiles()
+        return selected[0] if selected else ""
+    return ""
