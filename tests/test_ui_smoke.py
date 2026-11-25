@@ -141,7 +141,7 @@ def test_dialogo_tabelas_nbr_abre(tmp_path, monkeypatch):
     try:
         assert dialog.list.count() >= 9
         assert dialog.table_widget is not None
-        assert dialog.table_widget.rowCount() > 0
+        assert "Fundamentação" in dialog.current.title
     finally:
         dialog.close()
         app.processEvents()

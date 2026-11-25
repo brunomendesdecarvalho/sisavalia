@@ -1,16 +1,17 @@
 """Consulta das tabelas-resumo da ABNT NBR 14653-2:2011."""
 from __future__ import annotations
 
+import html
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
-    QAbstractItemView, QDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
-    QScrollArea, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QTextBrowser,
+    QScrollArea, QVBoxLayout, QWidget,
 )
 
-from .clipboard import copy_text, table_to_tsv
+from .clipboard import copy_text
 from .widgets import Banner, button, make_table, standard_icon
 
 
@@ -202,10 +203,13 @@ class NBRTablesDialog(QDialog):
         self.list.setMinimumWidth(265)
         self.list.setMaximumWidth(330)
         self.list.setAccessibleName("Lista de tabelas da NBR")
+        self.list.setWordWrap(True)
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         for table in NBR_TABLES:
             item = QListWidgetItem(f"{table.code}\n{table.title}")
             item.setData(Qt.ItemDataRole.UserRole, table.code)
             item.setToolTip(table.title)
+            item.setSizeHint(QSize(0, 58))
             self.list.addItem(item)
         self.list.currentRowChanged.connect(self._show_table)
         body.addWidget(self.list)
@@ -228,7 +232,7 @@ class NBRTablesDialog(QDialog):
         actions.addStretch(1)
         actions.addWidget(self.close_button)
         outer.addLayout(actions)
-        self.table_widget: Optional[QTableWidget] = None
+        self.table_widget: Optional[QTextBrowser] = None
         self.current = NBR_TABLES[0]
         self.list.setCurrentRow(0)
 
@@ -253,35 +257,35 @@ class NBRTablesDialog(QDialog):
         sub.setObjectName("Hint")
         sub.setWordWrap(True)
         self.content_layout.addWidget(sub)
-        grid = make_table(list(table.headers), word_wrap=True)
-        grid.setRowCount(len(table.rows))
-        for row_index, row in enumerate(table.rows):
-            for col_index, value in enumerate(row):
-                cell = QTableWidgetItem(str(value))
-                cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                cell.setToolTip(str(value))
-                grid.setItem(row_index, col_index, cell)
-        grid.resizeColumnsToContents()
-        grid.resizeRowsToContents()
-        grid.setMinimumHeight(min(520, 70 + 58 * len(table.rows)))
-        grid.setAccessibleName(f"{table.code} — {table.title}")
-        self.table_widget = grid
-        self.content_layout.addWidget(grid)
-        for note in table.notes:
-            label = QLabel("• " + note)
-            label.setObjectName("Hint")
-            label.setWordWrap(True)
-            self.content_layout.addWidget(label)
-        source = QLabel(f"Fonte: {table.source}. Resumo para consulta; consulte a norma completa.")
-        source.setObjectName("Hint")
-        source.setWordWrap(True)
-        self.content_layout.addWidget(source)
+        browser = QTextBrowser()
+        browser.setOpenExternalLinks(False)
+        rows_html = "".join(
+            "<tr>" + "".join(f"<td>{html.escape(str(value))}</td>" for value in row) + "</tr>"
+            for row in table.rows
+        )
+        heads = "".join(f"<th>{html.escape(str(h))}</th>" for h in table.headers)
+        browser.setHtml(
+            "<style>"
+            "body { font-family: 'DejaVu Sans', sans-serif; font-size: 10.5pt; color: #0f172a; }"
+            "table { border-collapse: collapse; width: 100%; }"
+            "th { background: #e2e8f0; color: #1e3a8a; text-align: left; padding: 5px; border: 1px solid #cbd5e1; }"
+            "td { padding: 5px; border: 1px solid #cbd5e1; vertical-align: top; }"
+            "tr:nth-child(even) td { background: #f8fafc; }"
+            "</style>"
+            f"<table><thead><tr>{heads}</tr></thead><tbody>{rows_html}</tbody></table>"
+        )
+        browser.setMinimumHeight(min(560, 70 + 52 * len(table.rows)))
+        browser.setAccessibleName(f"{table.code} — {table.title}")
+        self.table_widget = browser
+        self.content_layout.addWidget(browser)
         self.content_layout.addStretch(1)
 
     def copy_current(self) -> None:
         if self.table_widget is None:
             return
-        copy_text(table_to_tsv(self.table_widget))
+        lines = ["\t".join(self.current.headers)]
+        lines.extend("\t".join(row) for row in self.current.rows)
+        copy_text("\n".join(lines))
         self.copy_button.setText("Tabela copiada!")
         from PySide6.QtCore import QTimer
         QTimer.singleShot(1800, lambda: self.copy_button.setText("Copiar tabela"))

@@ -146,7 +146,7 @@ class EvaluationTab(QWidget):
         self.round_limits.toggled.connect(self._round_limits_changed)
         self.adopted_edit = QLineEdit()
         self.adopted_edit.setToolTip(tip("adotado"))
-        self.adopted_edit.setAccessibleName("Valor adotado")
+        self.adopted_edit.setAccessibleName("Valor adotado ou arbitrado")
         self.adopted_edit.editingFinished.connect(self._adopted_changed)
         self.round_button = button("Arredondar 1%", "calculator",
                                    tooltip="Arredonda o valor adotado para o múltiplo de 1% da estimativa.")
@@ -167,7 +167,7 @@ class EvaluationTab(QWidget):
         self.justification.setAccessibleName("Justificativa do valor adotado")
         self.justification.textChanged.connect(self._justification_changed)
         adopted_form.addRow("Intervalo usado:", self.interval_combo)
-        adopted_form.addRow("Valor adotado (R$):", adopted_row)
+        adopted_form.addRow("Valor adotado / arbitrado (R$):", adopted_row)
         adopted_form.addRow("", self.use_arbitrio)
         adopted_form.addRow("", self.round_limits)
         adopted_form.addRow("Justificativa:", self.justification)
