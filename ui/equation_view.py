@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 
-from core.equation import equation_latex, equation_png_from_fit
+from core.equation import equation_latex_display, equation_png_display
 from .file_dialogs import save_file_name
 from .widgets import button, show_error, toast
 
@@ -54,7 +54,7 @@ class EquationView(QWidget):
 
     def set_fit(self, fit: object) -> None:
         try:
-            data = equation_png_from_fit(fit)  # type: ignore[arg-type]
+            data = equation_png_display(fit)  # type: ignore[arg-type]
             pixmap = QPixmap()
             if not pixmap.loadFromData(data, "PNG"):
                 raise ValueError("A imagem da equação não pôde ser lida.")
@@ -62,7 +62,7 @@ class EquationView(QWidget):
             self.clear()
             show_error(self, f"Não foi possível desenhar a equação formatada: {exc}")
             return
-        self._latex = equation_latex(fit)  # type: ignore[arg-type]
+        self._latex = equation_latex_display(fit)  # type: ignore[arg-type]
         self._original = pixmap
         self.latex_edit.setText(self._latex)
         self.latex_edit.setCursorPosition(0)

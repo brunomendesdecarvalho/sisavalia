@@ -10,7 +10,7 @@ import numpy as np
 from PySide6.QtCore import QThread, Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QComboBox, QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QProgressBar,
+    QCheckBox, QComboBox, QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QProgressBar,
     QScrollArea, QSizePolicy, QSplitter, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
@@ -256,6 +256,20 @@ class RegressionTab(QWidget):
         self.elasticity_label.setObjectName("Hint")
         curve_card.add(self.elasticity_label)
         root.addWidget(curve_card)
+        plot_options = QHBoxLayout()
+        plot_options.setSpacing(8)
+        plot_options.addWidget(QLabel("Mostrar nos gráficos:"))
+        self.fit_ci_check = QCheckBox("IC 80% da média")
+        self.fit_arb_check = QCheckBox("Campo de arbítrio ±15%")
+        self.curve_ci_check = QCheckBox("Confiança 80%")
+        self.curve_pred_check = QCheckBox("Predição 80%")
+        for check in (self.fit_ci_check, self.fit_arb_check,
+                      self.curve_ci_check, self.curve_pred_check):
+            check.setChecked(True)
+            check.toggled.connect(self._refresh_plot_options)
+            plot_options.addWidget(check)
+        plot_options.addStretch(1)
+        root.addLayout(plot_options)
         plots_split = QSplitter(Qt.Orientation.Horizontal)
         self.fit_plot = PlotCard("Aderência: observado × estimado")
         self.curve_plot = PlotCard("Curva da função")
@@ -309,8 +323,8 @@ class RegressionTab(QWidget):
             self.curve_warning.setVisible(False)
             self.elasticity_label.setText("As elasticidades aparecem depois do cálculo.")
             return
-        from core.equation import equation_latex
-        self.equation_edit.setPlainText(equation_latex(fit))
+        from core.equation import equation_latex_display
+        self.equation_edit.setPlainText(equation_latex_display(fit))
         self.equation_view.set_fit(fit)
         self.kpi_r2.set_value(format_number(fit.rsquared, 4))
         self.kpi_adj.set_value(format_number(fit.rsquared_adj, 4))
@@ -391,6 +405,12 @@ class RegressionTab(QWidget):
         self.corr_table.resizeColumnsToContents()
         self.corr_table.setMinimumHeight(min(420, 70 + 30 * len(names)))
 
+    def _refresh_plot_options(self) -> None:
+        if self.fit is None:
+            return
+        self._fill_fit_plot(self.fit)
+        self.update_curve()
+
     def _fill_fit_plot(self, fit: FitResult) -> None:
         try:
             est, ci_low, ci_high = fit.mean_ci_band(level=0.80)
@@ -399,6 +419,8 @@ class RegressionTab(QWidget):
         fig, _ = charting.fit_scatter(
             fit.observed_original, fit.fitted_original, fit.labels,
             ci_low=ci_low, ci_high=ci_high, arbitrio_pct=15.0,
+            show_ci=self.fit_ci_check.isChecked(),
+            show_arbitrio=self.fit_arb_check.isChecked(),
         )
         self.fit_plot.set_figure(fig, x_values=fit.fitted_original, y_values=fit.observed_original,
                                  labels=fit.labels)
@@ -483,6 +505,8 @@ class RegressionTab(QWidget):
             variable=variable, point=point, warning=warning,
             ci_low=curve["ci_low"].to_numpy(), ci_high=curve["ci_high"].to_numpy(),
             pi_low=curve["pi_low"].to_numpy(), pi_high=curve["pi_high"].to_numpy(),
+            show_ci=self.curve_ci_check.isChecked(),
+            show_prediction=self.curve_pred_check.isChecked(),
         )
         self.curve_plot.set_figure(fig)
         try:

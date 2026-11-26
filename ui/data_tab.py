@@ -210,7 +210,6 @@ class DataTab(QWidget):
         panel.add(hint)
         self.var_scroll = QScrollArea()
         self.var_scroll.setWidgetResizable(True)
-        self.var_scroll.setMinimumHeight(220)
         self.var_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.var_scroll.setAccessibleName("Configuração das variáveis independentes")
         self.var_container = QWidget()
@@ -338,6 +337,7 @@ class DataTab(QWidget):
             empty.setWordWrap(True)
             self.var_rows_layout.addWidget(empty)
             self.var_rows_layout.addStretch(1)
+            QTimer.singleShot(0, self._adjust_var_scroll_height)
             return
         for column in numeric:
             cfg = self.manager.x_config.setdefault(
@@ -429,6 +429,40 @@ class DataTab(QWidget):
             row_layout.addWidget(description_edit)
             self.var_rows_layout.addWidget(holder)
         self.var_rows_layout.addStretch(1)
+        QTimer.singleShot(0, self._adjust_var_scroll_height)
+
+    def _adjust_var_scroll_height(self) -> None:
+        """Deixa a lista com a altura dos cards; com mais de 4, mostra ao menos 4."""
+        try:
+            count = max(0, self.var_rows_layout.count() - 1)  # desconta o stretch
+            if count == 0:
+                self.var_scroll.setFixedHeight(80)
+                return
+            cards = []
+            for index in range(self.var_rows_layout.count()):
+                widget = self.var_rows_layout.itemAt(index).widget()
+                if widget is not None:
+                    cards.append(widget)
+            if not cards:
+                return
+            card_height = max(widget.sizeHint().height() for widget in cards)
+            spacing = self.var_rows_layout.spacing()
+            if count <= 4:
+                desired = sum(widget.sizeHint().height() for widget in cards) + spacing * max(0, count - 1) + 10
+                self.var_scroll.setMinimumHeight(desired)
+                self.var_scroll.setMaximumHeight(desired)
+            else:
+                desired = card_height * 4 + spacing * 3 + 10
+                self.var_scroll.setMinimumHeight(desired)
+                self.var_scroll.setMaximumHeight(desired)
+        except Exception:
+            self.var_scroll.setMinimumHeight(220)
+
+    def refresh_theme(self) -> None:
+        for row in range(self.table.rowCount()):
+            self.table.setRowHeight(row, table_row_height())
+        self._adjust_var_scroll_height()
+        self.explore_panel.refresh_theme()
 
     def _update_sample_note(self) -> None:
         note = str(self.manager.metadata.get("sample_note", "") or "")

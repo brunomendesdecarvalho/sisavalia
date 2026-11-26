@@ -2,7 +2,7 @@
 
 **Público:** avaliador, engenheiro ou técnico que conhece avaliação de imóveis, mas não precisa saber programar.  
 **Objetivo:** verificar se o SisAvalia entrega o fluxo de trabalho de uma avaliação — importar, explorar, modelar, avaliar e exportar — com resultados coerentes e em linguagem compreensível.  
-**Versão:** 1.3.0
+**Versão:** 1.3.1
 **Data de referência:** novembro de 2026
 
 > **Dados de exemplo. Não use em laudo.** A amostra que acompanha o programa é fictícia e serve apenas para este roteiro.
@@ -450,7 +450,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 
 ### T19 — Build Windows
 
-1. Baixe o ZIP `SisAvalia-1.3.0-windows-x64.zip` da release.
+1. Baixe o ZIP `SisAvalia-1.3.1-windows-x64.zip` da release.
 2. Descompacte em uma pasta.
 3. Clique duas vezes em `SisAvalia.exe`.
 

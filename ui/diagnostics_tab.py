@@ -8,7 +8,7 @@ import numpy as np
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QGridLayout, QHBoxLayout, QLabel, QScrollArea, QSplitter, QVBoxLayout, QWidget,
+    QCheckBox, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QSplitter, QVBoxLayout, QWidget,
 )
 
 from core import charting
@@ -144,6 +144,14 @@ class DiagnosticsTab(QWidget):
         self.table.setMinimumHeight(260)
         table_card.add(self.table)
         root.addWidget(table_card)
+        plot_options = QHBoxLayout()
+        plot_options.addWidget(QLabel("Mostrar no gráfico de resíduos:"))
+        self.bands_check = QCheckBox("±2 desvios-padrão")
+        self.bands_check.setChecked(True)
+        self.bands_check.toggled.connect(self._refresh_resid_plot)
+        plot_options.addWidget(self.bands_check)
+        plot_options.addStretch(1)
+        root.addLayout(plot_options)
         plots_grid = QGridLayout()
         plots_grid.setSpacing(10)
         self.resid_plot = PlotCard("Resíduos × valores ajustados")
@@ -308,10 +316,15 @@ class DiagnosticsTab(QWidget):
             self.table.setRowHeight(r, 38)
         self.table.resizeColumnsToContents()
 
+    def _refresh_resid_plot(self) -> None:
+        if self.fit is not None:
+            self._fill_plots(self.fit)
+
     def _fill_plots(self, fit: FitResult) -> None:
         fig, _ = charting.residual_fitted(
             fit.fitted_original, fit.residuals, fit.labels,
             standardized=fit.standardized_residuals,
+            show_bands=self.bands_check.isChecked(),
         )
         self.resid_plot.set_figure(fig, x_values=fit.fitted_original,
                                    y_values=fit.standardized_residuals, labels=fit.labels)

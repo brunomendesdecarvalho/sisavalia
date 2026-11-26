@@ -237,7 +237,7 @@ def write_abnt_docx(doc: Document, context: ReportContext, target: Path,
 
     doc.add_page_break()
     _heading(doc, chapters[10])
-    doc.add_paragraph("Equação estimada (variável dependente transformada):")
+    doc.add_paragraph("Equação estimada:")
     if "equation" in images:
         _docx_add_image(doc, images["equation"], 15.0)
     else:
@@ -245,7 +245,7 @@ def write_abnt_docx(doc: Document, context: ReportContext, target: Path,
         for run in p.runs:
             run.font.name = "Arial"
             run.font.size = Pt(10)
-    doc.add_paragraph("Equação na escala original de Y:")
+    doc.add_paragraph("Forma inversa (para conferência):")
     if "equation_original" in images:
         _docx_add_image(doc, images["equation_original"], 15.0)
     else:

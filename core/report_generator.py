@@ -193,8 +193,8 @@ def _build_images(context: ReportContext, *, summary: bool = False) -> dict[str,
     images["aderencia"] = charting.figure_to_bytes(fig, dpi=220)
     plt.close(fig)
     try:
-        from .equation import equation_png_from_fit
-        images["equation"] = equation_png_from_fit(fit)
+        from .equation import equation_png_display, equation_png_from_fit
+        images["equation"] = equation_png_display(fit)
         images["equation_original"] = equation_png_from_fit(fit, original=True)
     except Exception:
         LOGGER.debug("Equação não pôde ser convertida em imagem", exc_info=True)
@@ -261,8 +261,7 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
         ))
     log_note = _log_note(manager)
     note = f'<p class="note">{_h(log_note)}</p>' if log_note else ""
-    image = (f'<div class="chart"><img src="aderencia" width="{image_width}"></div>'
-             if "aderencia" in images else "")
+    image = ""
     equation_image = (
         f'<div class="chart"><img src="equation" width="{image_width}"></div>'
         if "equation" in images else f'<div class="equation">{_h(fit.equation)}</div>'
@@ -271,19 +270,21 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     sample_html = f'<p class="note">{_h(sample_note)}</p>' if sample_note else ""
     first = context.evaluations[0] if context.evaluations else None
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    body {{ font-family: 'DejaVu Sans', sans-serif; font-size: {font_pt:.1f}pt; color: #0f172a; }}
-    h1 {{ font-size: 16pt; margin: 0 0 1mm 0; color: #1e3a8a; }}
-    h2 {{ font-size: 11.5pt; color: #1e3a8a; margin: 3mm 0 1mm 0; border-bottom: 1px solid #cbd5e1; }}
-    p {{ margin: 1mm 0; }}
+    body {{ font-family: 'DejaVu Sans', sans-serif; font-size: {font_pt:.1f}pt; line-height: 1.5;
+           color: #0f172a; text-align: justify; }}
+    h1 {{ font-size: 14pt; margin: 0 0 3mm 0; color: #1e3a8a; text-align: left; }}
+    h2 {{ font-size: 12pt; color: #1e3a8a; margin: 5mm 0 2mm 0; border-bottom: 1px solid #cbd5e1; text-align: left; }}
+    p {{ margin: 0 0 5pt 0; text-indent: 1.25cm; }}
+    p.subtitle, p.small, p.note, .chart, table, td, th {{ text-indent: 0; }}
     .subtitle {{ color: #475569; font-size: 8pt; margin-top: 0; }}
-    table {{ border-collapse: collapse; width: 100%; margin: 1.5mm 0; border: 1px solid #475569; }}
+    table {{ border-collapse: collapse; width: 100%; margin: 2mm 0 3mm 0; border: 1px solid #475569; }}
     th {{ background: #e2e8f0; text-align: left; padding: 2px 4px; font-size: 8pt; border: 1px solid #475569; }}
     td {{ border: 1px solid #475569; padding: 2px 4px; font-size: 8pt; }}
-    .note {{ background: #fff7ed; border-left: 3px solid #f59e0b; padding: 1.5mm; font-size: 8pt; }}
-    .equation {{ background: #eff6ff; border: 1px solid #bfdbfe; padding: 2mm; font-size: 10pt; }}
-    .chart {{ margin: 2mm 0; }}
+    .note {{ background: #fff7ed; border-left: 3px solid #f59e0b; padding: 2mm; font-size: 8.5pt; }}
+    .equation {{ background: #eff6ff; border: 1px solid #bfdbfe; padding: 2mm; font-size: 9pt; }}
+    .chart {{ margin: 2mm 0; page-break-inside: avoid; }}
     .chart img {{ width: {image_width}px; }}
-    .small {{ font-size: 8pt; color: #475569; }}
+    .small {{ font-size: 8.5pt; color: #475569; }}
     </style></head><body>
     <h1>{_h(context.title)}</h1>
     <p class="subtitle">ANEXO AO LAUDO DE AVALIAÇÃO — dados, cálculos e gráficos</p>
@@ -291,16 +292,14 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     <p class="small"><b>Imóveis na conta:</b> {manager.n_active} &nbsp; <b>Desligados:</b> {manager.n_inactive} &nbsp; <b>Gerado em:</b> {_h(context.generated_at)}</p>
     {sample_html}
     <h2>Equação</h2>{equation_image}
-    <p class="small"><b>Na escala original de Y:</b> {_h(fit.equation_original)}</p>
     <p><b>R²:</b> {_n(fit.rsquared, 4)} &nbsp; <b>R² ajustado:</b> {_n(fit.rsquared_adj, 4)} &nbsp;
     <b>Erro padrão:</b> {_n(fit.scale, 4)}</p>
     <h2>Resultado da avaliação</h2>
-    {_table_html(["Avaliando", "Estimativa", "IC 80%", "Adotado", "Fund.", "Precisão"], eval_rows, aligns=["left", "right", "center", "right", "center", "center"], widths=["18%", "14%", "25%", "14%", "14%", "15%"])}
+    {_table_html(["Avaliando", "Estimativa", "IC 80%", "Adotado", "Fund.", "Precisão"], eval_rows, aligns=["left", "right", "center", "right", "center", "center"], widths=["15%", "17%", "22%", "15%", "15%", "16%"])}
     <p><b>Grau de fundamentação:</b> {_h(first.fundamental_degree) if first else '—'} &nbsp;
     <b>Grau de precisão:</b> {_h(first.precision_degree) if first else '—'}</p>
     {note}
-    <h2>Aderência</h2>{image}
-    <p class="small">A sugestão de equação não substitui o julgamento do avaliador. Confira os dados antes de usar em laudo.</p>
+    <p class="small">Gráfico de aderência e demais gráficos: no relatório completo. A sugestão de equação não substitui o julgamento do avaliador.</p>
     </body></html>"""
 
 
@@ -465,9 +464,9 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     <b>Usados no modelo:</b> {fit.n_obs} &nbsp; <b>Fora por vazio:</b> {len(fit.dropped_positions)}</p>
     {sample_table}
     <h2>2. Equação ajustada</h2>
-    <p><b>Forma estimada (Y transformado):</b></p>
+    <p><b>Equação estimada:</b></p>
     {equation_html}
-    <p><b>Forma não transformada da variável dependente (para o laudo):</b></p>
+    <p><b>Forma inversa (para conferência):</b></p>
     {equation_original_html}
     <p><b>R²:</b> {_n(fit.rsquared, 4)} &nbsp; <b>R² ajustado:</b> {_n(fit.rsquared_adj, 4)} &nbsp;
     <b>Erro padrão dos resíduos:</b> {_n(fit.scale, 4)}</p>

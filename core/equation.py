@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import math
 import re
 from typing import Any
 
@@ -13,6 +14,7 @@ from .formatting import format_number
 
 def _latex_text(text: str) -> str:
     text = str(text).replace("\\", r"\backslash ")
+    text = text.replace(" ", r"\ ")
     for char, repl in (("_", r"\_"), ("%", r"\%"), ("&", r"\&"), ("#", r"\#"),
                        ("$", r"\$"), ("{", r"\{"), ("}", r"\}")):
         text = text.replace(char, repl)
@@ -91,9 +93,9 @@ def equation_latex_original(fit: Any) -> str:
 
 
 def _equation_lines(latex: str, max_chars: int = 130) -> list[str]:
-    if len(latex) <= max_chars or r"\exp" in latex:
+    if len(latex) <= max_chars or (r"\exp" in latex and r"\times" not in latex):
         return [latex]
-    parts = [part for part in re.split(r"(?= [+-] )", latex) if part]
+    parts = [part for part in re.split(r"(?= (?:[+-]|\\times) )", latex) if part]
     lines: list[str] = []
     current = ""
     for part in parts:
@@ -129,3 +131,53 @@ def equation_png_bytes(latex: str, *, fontsize: float = 21, dpi: int = 220) -> b
 def equation_png_from_fit(fit: Any, *, original: bool = False) -> bytes:
     latex = equation_latex_original(fit) if original else equation_latex(fit)
     return equation_png_bytes(latex)
+
+
+_DISPLAY_NAMES = {
+    "Valor_unitario": "Valor unitário",
+    "Area_m2": "Área",
+    "Padrao": "Padrão",
+    "Idade_anos": "Idade",
+    "Quartos": "Quartos",
+    "Valor_total": "Valor total",
+    "Valor_unitario_terreno": "Valor unitário do terreno",
+}
+
+
+def _display_label(name: str) -> str:
+    return _DISPLAY_NAMES.get(str(name), str(name).replace("_", " "))
+
+
+def equation_latex_multiplicative(fit: Any) -> str:
+    """Forma multiplicativa de um modelo com Y em ln, no estilo do laudo."""
+    if fit.y_transform != "ln(x)":
+        return equation_latex(fit)
+    constant = math.exp(float(fit.params["const"]))
+    parts = [_latex_number(constant, 4)]
+    for name, transform, design in zip(fit.x_names, fit.x_transforms, fit.design_names):
+        coefficient = float(fit.params[design])
+        if abs(coefficient) <= 1e-14:
+            continue
+        label = _latex_text(_display_label(name))
+        if transform == "ln(x)":
+            parts.append(rf"\left({label}\right)^{{{_latex_number(coefficient, 4)}}}")
+        elif transform == "1/x":
+            parts.append(rf"\exp\left(\frac{{{_latex_number(coefficient, 4)}}}{{{label}}}\right)")
+        elif transform == "x²":
+            parts.append(rf"\exp\left({_latex_number(coefficient, 4)}\,{label}^{{2}}\right)")
+        elif transform == "√x":
+            parts.append(rf"\exp\left({_latex_number(coefficient, 4)}\sqrt{{{label}}}\right)")
+        else:
+            base = _latex_number(math.exp(coefficient), 4)
+            parts.append(rf"\left({base}\right)^{{{label}}}")
+    lhs = _latex_text(_display_label(fit.y_name))
+    return lhs + " = " + r" \times ".join(parts)
+
+
+def equation_latex_display(fit: Any) -> str:
+    """Equação exibida ao usuário: multiplicativa se Y estiver em ln."""
+    return equation_latex_multiplicative(fit) if fit.y_transform == "ln(x)" else equation_latex(fit)
+
+
+def equation_png_display(fit: Any) -> bytes:
+    return equation_png_bytes(equation_latex_display(fit))

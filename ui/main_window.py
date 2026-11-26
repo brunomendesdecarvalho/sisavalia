@@ -737,7 +737,7 @@ class MainWindow(QMainWindow):
             button_widget.setIconSize(size)
         for tool_button in self.findChildren(QToolButton):
             tool_button.setIconSize(size)
-        for tab in (self.data_tab, self.data_tab.explore_panel, self.regression_tab,
+        for tab in (self.data_tab, self.regression_tab,
                     self.evaluation_tab, self.diagnostics_tab, self.multivariate_tab,
                     self.simulation_tab, self.plugins_tab):
             try:

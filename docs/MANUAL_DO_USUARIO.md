@@ -131,6 +131,7 @@ A tabela mostra equação curta, R², R² ajustado, p do F, pior p dos regressor
 
 - **Equação** em texto LaTeX copiável, com os coeficientes na escala de leitura.
 - **Imagem da equação** logo abaixo, com **Copiar imagem**, **Salvar PNG** e **Copiar LaTeX**. O PNG sai com fundo branco e traço preto.
+- Quando Y está em **ln(x)**, a imagem usa a forma multiplicativa do laudo: `Valor = constante × (Área)^coeficiente × (1,0071)^Padrão...`.
 - **R²**, **R² ajustado** e **erro padrão** em destaque.
 - Aviso quando R² < 0,75.
 - **ANOVA** completa (SQ, GL, QM, F, p).
@@ -140,6 +141,7 @@ A tabela mostra equação curta, R², R² ajustado, p do F, pior p dos regressor
 - **Aderência observado × estimado** com reta de 45°, banda de confiança de 80% da média e faixa do campo de arbítrio de ±15%, além do rótulo ao apontar.
 - **Resíduos padronizados × valores ajustados** com linhas de ±2 desvios-padrão; pontos fora da faixa aparecem em vermelho.
 - **Efeito marginal** (regressão parcial) da variável mais importante, com as demais presas no avaliando selecionado ou na média, incluindo bandas de confiança de 80% e de predição de 80%.
+- Acima dos gráficos, as caixas **IC 80% da média**, **Campo de arbítrio ±15%**, **Confiança 80%** e **Predição 80%** ligam e desligam cada faixa; a legenda e a imagem salva acompanham.
 - **Elasticidades**: “se Área sobe 1% e o resto fica parado, o valor cai cerca de 0,35%”. Para dicotômica, mostra a diferença percentual entre os dois códigos.
 
 ![Gráficos ajustados ao cartão](telas/graficos_melhorados.png)
@@ -322,7 +324,7 @@ O **DOCX** é um laudo completo no esqueleto da NBR 14653-2, seção 10.1, com c
 
 O DOCX usa A4, margens 3/2 cm, Arial 12, entrelinha 1,5, texto justificado, recuo de primeira linha e número de página no alto à direita. As equações são incluídas como imagem em PNG, com fundo branco e traço preto. Tópicos sem dado ficam com o título e a indicação **Não informado. Preencher no laudo.**; Referências e Anexos já saem com um esqueleto de exemplo para você completar.
 
-O resumo traz equação, estimativa, IC, valor adotado, graus e gráfico de aderência em uma página.
+O resumo traz equação, estimativa, IC, valor adotado e graus em uma página, com o mesmo espaçamento ABNT do relatório completo. O gráfico de aderência fica no relatório completo.
 
 Se Y estiver em logaritmo, o relatório registra: **a estimativa é o exponencial do ajustado, sem correção de retransformação (smearing)**.
 
@@ -369,7 +371,7 @@ O relatório mostra esses campos, a equação na forma original de Y, a descriç
 
 Se você recebeu o `.deb` ou o AppImage, **não precisa instalar Python**. O programa já vem com tudo o que usa. O SisAvalia verifica os componentes ao abrir e avisa se o pacote estiver incompleto.
 
-O AppImage 1.3.0 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
+O AppImage 1.3.1 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
 
 Para **Windows**, baixe o ZIP da release, descompacte e clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
 
