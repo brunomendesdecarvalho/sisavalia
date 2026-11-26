@@ -43,7 +43,7 @@ class MultivariateTab(QWidget):
         root = QVBoxLayout(inner)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(10)
-        title = QLabel("6. K-Médias & PCA")
+        title = QLabel("5. K-Médias & PCA")
         title.setObjectName("PageTitle")
         root.addWidget(title)
         subtitle = QLabel(

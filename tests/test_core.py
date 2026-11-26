@@ -537,3 +537,38 @@ def test_plugin_manager_pasta_extra_persiste_sem_remover(tmp_path, monkeypatch):
     other = PluginManager()
     assert extra.resolve() in other.plugin_directories()
     assert other.plugin_directories()[0].name == "plugins"
+
+
+def test_equacao_latex_e_png(example: DataManager, fit_example):
+    from core.equation import equation_latex, equation_latex_original, equation_png_from_fit
+    latex = equation_latex(fit_example)
+    assert r"\ln" in latex and "Valor" in latex
+    assert r"\exp" in equation_latex_original(fit_example)
+    data = equation_png_from_fit(fit_example)
+    assert data.startswith(b"\x89PNG\r\n\x1a\n") and len(data) > 2000
+
+
+def test_bandas_do_modelo(example: DataManager, fit_example):
+    est, low, high = fit_example.mean_ci_band()
+    assert len(est) == len(low) == len(high) == fit_example.n_obs
+    assert all(lo <= e <= hi for e, lo, hi in zip(est, low, high))
+    base = {
+        name: float(pd.to_numeric(example.df[name], errors="coerce").mean())
+        for name in fit_example.x_names
+    }
+    curve = fit_example.curve_bands(fit_example.x_names[0], base)
+    assert not curve.empty
+    assert {"x", "y", "ci_low", "ci_high", "pi_low", "pi_high"}.issubset(curve.columns)
+    assert all(curve["ci_low"] <= curve["ci_high"])
+    assert all(curve["pi_low"] <= curve["pi_high"])
+
+
+def test_fonte_pequena_e_padrao(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados_tema"))
+    from core.project_io import ProjectIO
+    from ui.theme import THEME_MODES, current_font_pt
+    assert "Pequena" in THEME_MODES
+    project = ProjectIO()
+    assert project.get_theme() == "Pequena"
+    project.set_theme("Normal")
+    assert project.get_theme() == "Normal"

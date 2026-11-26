@@ -238,15 +238,21 @@ def write_abnt_docx(doc: Document, context: ReportContext, target: Path,
     doc.add_page_break()
     _heading(doc, chapters[10])
     doc.add_paragraph("Equação estimada (variável dependente transformada):")
-    p = doc.add_paragraph(fit.equation)
-    for run in p.runs:
-        run.font.name = "Arial"
-        run.font.size = Pt(10)
+    if "equation" in images:
+        _docx_add_image(doc, images["equation"], 15.0)
+    else:
+        p = doc.add_paragraph(fit.equation)
+        for run in p.runs:
+            run.font.name = "Arial"
+            run.font.size = Pt(10)
     doc.add_paragraph("Equação na escala original de Y:")
-    p = doc.add_paragraph(fit.equation_original)
-    for run in p.runs:
-        run.font.name = "Arial"
-        run.font.size = Pt(10)
+    if "equation_original" in images:
+        _docx_add_image(doc, images["equation_original"], 15.0)
+    else:
+        p = doc.add_paragraph(fit.equation_original)
+        for run in p.runs:
+            run.font.name = "Arial"
+            run.font.size = Pt(10)
     doc.add_paragraph(f"R²: {_n(fit.rsquared, 4)}    R² ajustado: {_n(fit.rsquared_adj, 4)}    "
                       f"Erro padrão dos resíduos: {_n(fit.scale, 4)}")
     _heading(doc, "ANOVA", 2)

@@ -224,6 +224,20 @@ class FitResult:
         return Prediction(point, ci_low, ci_high, pi_low, pi_high, se_mean, se_pred,
                           float(amplitude), precision_degree(float(amplitude)))
 
+    def mean_ci_band(self, level: float = 0.80) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Faixa de confiança da média para cada imóvel usado, na escala original de Y."""
+        estimates = np.asarray(self.fitted_original, dtype=float)
+        lows = np.full(len(estimates), np.nan, dtype=float)
+        highs = np.full(len(estimates), np.nan, dtype=float)
+        design = np.asarray(self.design_matrix, dtype=float)
+        for i in range(min(len(estimates), design.shape[0])):
+            eta = float(design[i] @ self.params.values)
+            prediction = self.prediction_from_eta(eta, design[i], level=level)
+            lows[i] = prediction.ci_low
+            highs[i] = prediction.ci_high
+        order = np.argsort(estimates)
+        return estimates[order], lows[order], highs[order]
+
     def estimate_at(self, values: dict[str, Any]) -> float:
         return self.predict_at(values).point
 
@@ -343,6 +357,42 @@ class FitResult:
             except (ModelError, ValueError, OverflowError):
                 continue
         return pd.DataFrame({"x": xs, "y": ys})
+
+    def curve_bands(self, variable: str, base_values: dict[str, Any], *, level: float = 0.80,
+                    points: int = 120) -> pd.DataFrame:
+        """Curva da variável com bandas de confiança da média e de predição, na escala de Y."""
+        if variable not in self.x_names:
+            raise ModelError("Escolha uma variável do modelo para desenhar a curva.")
+        raw_series = self.extra.get("raw_x", {}).get(variable)
+        if raw_series is None or len(raw_series) == 0:
+            raise ModelError("Sem dados para desenhar a curva.")
+        raw = np.asarray(raw_series, dtype=float)
+        low, high = float(np.nanmin(raw)), float(np.nanmax(raw))
+        if not math.isfinite(low) or not math.isfinite(high) or high <= low:
+            raise ModelError("A variável não tem faixa suficiente para a curva.")
+        margin = (high - low) * 0.05
+        grid = np.linspace(low - margin, high + margin, max(points, 20))
+        idx = self.x_names.index(variable)
+        transform = self.x_transforms[idx]
+        if transform in ("ln(x)", "1/x"):
+            grid = grid[grid > 0]
+        if transform == "√x":
+            grid = grid[grid >= 0]
+        rows: list[dict[str, float]] = []
+        for value in grid:
+            vals = dict(base_values)
+            vals[variable] = float(value)
+            try:
+                eta, vector = self.predicted_transformed_at(vals)
+                prediction = self.prediction_from_eta(eta, vector, level=level)
+            except (ModelError, ValueError, OverflowError):
+                continue
+            rows.append({
+                "x": float(value), "y": prediction.point,
+                "ci_low": prediction.ci_low, "ci_high": prediction.ci_high,
+                "pi_low": prediction.pi_low, "pi_high": prediction.pi_high,
+            })
+        return pd.DataFrame(rows)
 
     def to_model_record(self) -> dict[str, Any]:
         return {

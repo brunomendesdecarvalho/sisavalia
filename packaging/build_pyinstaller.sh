@@ -81,6 +81,9 @@ python3 -m PyInstaller \
     --exclude-module nbconvert \
     --hidden-import xlrd \
     --hidden-import core.abnt_docx \
+    --hidden-import core.equation \
+    --hidden-import ui.equation_view \
+    --hidden-import ui.wheel_guard \
     --collect-data docx \
     --hidden-import pandas.io.excel._xlrd \
     --hidden-import pandas.io.excel._openpyxl \

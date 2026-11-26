@@ -11,6 +11,10 @@ from core.app_paths import resource_path
 from core.charting import configure_matplotlib
 
 THEME_MODES = {
+    "Pequena": {
+        "font_pt": 10, "title_pt": 18, "subtitle_pt": 13, "kpi_pt": 20,
+        "btn_min": 38, "input_min": 34, "table_row": 32, "icon": 20,
+    },
     "Normal": {
         "font_pt": 12, "title_pt": 22, "subtitle_pt": 15, "kpi_pt": 24,
         "btn_min": 46, "input_min": 42, "table_row": 38, "icon": 24,
@@ -25,7 +29,7 @@ THEME_MODES = {
     },
 }
 
-_current_mode = "Normal"
+_current_mode = "Pequena"
 
 
 def current_mode() -> str:
@@ -33,15 +37,15 @@ def current_mode() -> str:
 
 
 def current_font_pt() -> int:
-    return int(THEME_MODES.get(_current_mode, THEME_MODES["Normal"])["font_pt"])
+    return int(THEME_MODES.get(_current_mode, THEME_MODES["Pequena"])["font_pt"])
 
 
 def icon_size() -> int:
-    return int(THEME_MODES.get(_current_mode, THEME_MODES["Normal"])["icon"])
+    return int(THEME_MODES.get(_current_mode, THEME_MODES["Pequena"])["icon"])
 
 
 def table_row_height() -> int:
-    return int(THEME_MODES.get(_current_mode, THEME_MODES["Normal"])["table_row"])
+    return int(THEME_MODES.get(_current_mode, THEME_MODES["Pequena"])["table_row"])
 
 
 def light_palette() -> QPalette:
@@ -100,7 +104,7 @@ def apply_theme(app: QApplication, mode: str = "Normal") -> None:
     """Aplica fonte, QSS e estilo dos gráficos em toda a aplicação."""
     global _current_mode
     if mode not in THEME_MODES:
-        mode = "Normal"
+        mode = "Pequena"
     _current_mode = mode
     config = THEME_MODES[mode]
     QLocale.setDefault(QLocale(QLocale.Language.Portuguese, QLocale.Country.Brazil))
@@ -112,5 +116,7 @@ def apply_theme(app: QApplication, mode: str = "Normal") -> None:
     stylesheet, _ = load_stylesheet(mode)
     app.setStyleSheet(stylesheet)
     configure_matplotlib(int(config["font_pt"]))
+    from .wheel_guard import install_wheel_guard
+    install_wheel_guard(app)
     app.setProperty("sisavalia_theme", mode)
     app.setProperty("sisavalia_font_pt", int(config["font_pt"]))

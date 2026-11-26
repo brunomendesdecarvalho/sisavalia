@@ -15,7 +15,7 @@ Na tela inicial há quatro caminhos:
 - **Abrir projeto**: continua um trabalho salvo em `.sisproj`.
 - **Abrir exemplo**: carrega os 20 apartamentos fictícios.
 
-A barra superior fica sempre visível. Ela tem **Novo**, **Abrir Planilha**, **Salvar Projeto**, **Abrir Projeto**, **Recentes**, **Exportar Relatório**, **Exportar Planilha**, o seletor de **Tamanho da fonte** (Normal, Grande, Muito Grande) e **Ajuda Rápida**.
+A barra superior fica sempre visível. Ela tem **Novo**, **Abrir Planilha**, **Salvar Projeto**, **Abrir Projeto**, **Recentes**, **Exportar Relatório**, **Exportar Planilha**, o seletor de **Tamanho da fonte** (Pequena, Normal, Grande, Muito Grande) e **Ajuda Rápida**.
 
 A barra de status, embaixo, mostra quantos imóveis estão na conta, quantos estão desligados e se o modelo está calculado.
 
@@ -23,7 +23,7 @@ A barra de status, embaixo, mostra quantos imóveis estão na conta, quantos est
 
 Na aba 1, clique em **Dados do trabalho**. Preencha autor, nome do trabalho, data, município, tipologia, descrição e, se quiser, uma observação da amostra. Esses dados aparecem no relatório.
 
-## 2. Aba 1 — Dados
+## 2. Aba 1 — Dados e exploração
 
 ![Aba Dados](telas/aba_dados.png)
 
@@ -35,7 +35,7 @@ Use **Importar planilha** ou **Abrir Planilha**. O programa reconhece:
 - CSV com separador `;`, `,` ou tabulação;
 - vírgula ou ponto como separador decimal.
 
-Também é possível copiar uma tabela do software de planilhas de sua preferência (Ctrl+C) e clicar em **Colar do Calc**. Se já houver dados, o programa pergunta antes de substituir.
+Também é possível copiar uma tabela do software de planilhas de sua preferência (Ctrl+C) e clicar em **Colar planilha**. Se já houver dados, o programa pergunta antes de substituir.
 
 A primeira linha da planilha deve conter os títulos das colunas.
 
@@ -80,7 +80,7 @@ Regras importantes:
   - até 30 imóveis ligados: mínimo de 3 por característica;
   - de 31 a 100: mínimo de 10% do número de imóveis;
   - acima de 100: mínimo de 10 por característica.
-  O alerta aparece na aba Dados, na aba 5 (Resíduos & Cook) e na aba 4 (Avaliando & NBR).
+  O alerta aparece na aba Dados, na aba 4 (Resíduos & Cook) e na aba 3 (Avaliando & NBR).
 
 ### Nova coluna calculada
 
@@ -92,22 +92,19 @@ Valor unitário = Valor total ÷ Área
 
 Escolha a coluna A, a operação e a coluna B (ou uma constante). A nova coluna entra na tabela.
 
-## 3. Aba 2 — Explorar
+### Explorar os dados
 
-Mostra, para cada variável numérica dos imóveis ligados:
+Logo abaixo das variáveis e acima da tabela, o programa mostra, para cada variável numérica dos imóveis ligados:
 
-- mínimo, máximo, média, mediana, desvio padrão e quantidade de vazios.
-
-No topo aparece uma faixa de alerta para vazios e para colunas de texto. Os gráficos são:
-
+- mínimo, máximo, média, mediana, desvio padrão e quantidade de vazios;
 - dispersão de um X contra o Y;
 - histograma de uma variável.
 
-Quando já existe um avaliando selecionado, ele aparece como uma estrela vermelha na dispersão, para você ver a extrapolação com os olhos.
+Quando você muda a transformação de Y ou de um X, os gráficos passam a usar a variável transformada (por exemplo, ln(Área) em vez de Área). No topo aparece uma faixa de alerta para vazios e para colunas de texto.
 
 **Copiar Imagem** e **Salvar Imagem** funcionam em todos os gráficos. A imagem salva em PNG tem 240 dpi.
 
-## 4. Aba 3 — Regressão & ANOVA
+## 3. Aba 2 — Regressão & ANOVA
 
 ![Aba Regressão](telas/aba_regressao.png)
 
@@ -132,22 +129,24 @@ A tabela mostra equação curta, R², R² ajustado, p do F, pior p dos regressor
 
 ### Resultados
 
-- **Equação** em texto copiável, com os coeficientes na escala de leitura.
+- **Equação** em texto LaTeX copiável, com os coeficientes na escala de leitura.
+- **Imagem da equação** logo abaixo, com **Copiar imagem**, **Salvar PNG** e **Copiar LaTeX**. O PNG sai com fundo branco e traço preto.
 - **R²**, **R² ajustado** e **erro padrão** em destaque.
 - Aviso quando R² < 0,75.
 - **ANOVA** completa (SQ, GL, QM, F, p).
 - **Coeficientes** (estimativa, erro padrão, t, p-valor).
 - **Matriz de correlação**, com pares |r| > 0,80 destacados.
 - **Alerta de sinal invertido**, sem forçar o coeficiente.
-- **Aderência observado × estimado** com reta de 45° e rótulo ao apontar.
-- **Curva da função** para uma variável, com as outras presas no avaliando selecionado ou na média.
+- **Aderência observado × estimado** com reta de 45°, banda de confiança de 80% da média e faixa do campo de arbítrio de ±15%, além do rótulo ao apontar.
+- **Resíduos padronizados × valores ajustados** com linhas de ±2 desvios-padrão; pontos fora da faixa aparecem em vermelho.
+- **Efeito marginal** (regressão parcial) da variável mais importante, com as demais presas no avaliando selecionado ou na média, incluindo bandas de confiança de 80% e de predição de 80%.
 - **Elasticidades**: “se Área sobe 1% e o resto fica parado, o valor cai cerca de 0,35%”. Para dicotômica, mostra a diferença percentual entre os dois códigos.
 
 ![Gráficos ajustados ao cartão](telas/graficos_melhorados.png)
 
 O teste t dos itens de fundamentação usa **somente os regressores**, nunca o intercepto.
 
-## 5. Aba 4 — Avaliando & NBR 14653
+## 4. Aba 3 — Avaliando & NBR 14653
 
 ![Aba Avaliação](telas/aba_avaliacao.png)
 
@@ -206,13 +205,13 @@ Enquadramento: o programa aplica as somas e mínimos exigidos. Se houver **Códi
 
 O **grau de fundamentação** e o **grau de precisão** aparecem separados, com semáforo e pontuação.
 
-## 6. Aba 5 — Resíduos & Cook
+## 5. Aba 4 — Resíduos & Cook
 
 ### Semáforo das premissas
 
 - **Normalidade**: conta os resíduos padronizados dentro de ±1σ, ±1,64σ e ±1,96σ. As faixas esperadas são 66–74%, 85–95% e 95–100%. Verde quando dentro; amarelo quando sai até 5 pontos; vermelho no restante. O Shapiro-Wilk aparece como linha extra, sem cor decisiva.
 - **Dispersão dos resíduos**: Breusch-Pagan, com frase de resultado.
-- **Variáveis repetidas**: VIF amarelo acima de 5 e vermelho acima de 10; pares de X com |r| > 0,80. Quando houver redundância, o programa sugere revisar variáveis repetidas, ampliar a amostra ou consultar a aba 6 (PCA).
+- **Variáveis repetidas**: VIF amarelo acima de 5 e vermelho acima de 10; pares de X com |r| > 0,80. Quando houver redundância, o programa sugere revisar variáveis repetidas, ampliar a amostra ou consultar a aba 5 (PCA).
 - **Durbin-Watson**: calculado após ordenar os imóveis pelos valores ajustados. É informativo. **Este número vale para dados ao longo do tempo. Em avaliação de imóveis ele não decide o grau.**
 - **Coerência do avaliando**: o programa calcula a distância de Mahalanobis do avaliando em relação à amostra e avisa quando a combinação de X é atípica.
 
@@ -226,7 +225,7 @@ Mostra, por imóvel: rótulo, observado, estimado, resíduo, resíduo relativo, 
 
 ### Gráficos
 
-Resíduos × ajustados, Q-Q, histograma, hastes de Cook e hastes de Mahalanobis. Todos têm **Copiar Imagem** e **Salvar Imagem**, e mostram o rótulo ao apontar o ponto.
+Resíduos padronizados × ajustados (com faixas de ±2 desvios-padrão), Q-Q, histograma, hastes de Cook e hastes de Mahalanobis. Todos têm **Copiar Imagem** e **Salvar Imagem**, e mostram o rótulo ao apontar o ponto.
 
 A **roda do mouse** rola a página quando o ponteiro está sobre um gráfico. Para interagir com o gráfico, clique nele; clique fora para voltar ao modo de rolagem normal.
 
@@ -234,7 +233,7 @@ O Mahalanobis é calculado sobre as independentes na forma usada no modelo. O co
 
 Os botões **Desativar pontos influentes (Cook)** e **Desativar pontos atípicos (Mahalanobis)** dizem quantos imóveis serão desmarcados na aba 1 antes de confirmar.
 
-## 7. Aba 6 — K-Médias & PCA
+## 6. Aba 5 — K-Médias & PCA
 
 Marque duas ou mais variáveis numéricas.
 
@@ -243,7 +242,7 @@ Marque duas ou mais variáveis numéricas.
 
 Todos os gráficos podem ser copiados e salvos em PNG.
 
-## 8. Aba 7 — Simulação
+## 7. Aba 6 — Simulação
 
 Distribuições: normal, uniforme, triangular, exponencial e Poisson.
 
@@ -254,7 +253,7 @@ Distribuições: normal, uniforme, triangular, exponencial e Poisson.
 
 Os valores são fictícios. Não use em laudo.
 
-## 9. Aba 8 — Plugins
+## 8. Aba 7 — Plugins
 
 O programa procura plugins na pasta `plugins` da instalação, na pasta de plugins do usuário e em todas as pastas extras que você configurar. Os plugins nativos:
 
@@ -266,7 +265,7 @@ O programa procura plugins na pasta `plugins` da instalação, na pasta de plugi
 
 Cada plugin tem botão para copiar ou salvar o resultado. Se um plugin falhar, o programa mostra uma mensagem simples e guarda o detalhe em `erros.log`.
 
-## 10. Salvar, recuperar e exportar
+## 9. Salvar, recuperar e exportar
 
 ### Projeto `.sisproj`
 
@@ -301,7 +300,7 @@ Clique em **Exportar Relatório**. Escolha:
 
 O relatório completo traz metadados, amostra, equação, ANOVA, coeficientes, projeção de cada avaliando, IC, predição, arbítrio, valor adotado, justificativa, fundamentação, precisão, extrapolação, premissas, tabela de resíduos e gráficos.
 
-O **PDF** funciona como **anexo** ao laudo: mantém os dados, cálculos e gráficos, mas não repete a identificação, os pressupostos, a qualificação legal nem a assinatura — isso fica no laudo principal. Ele usa margens ABNT (3 cm no topo e à esquerda, 2 cm à direita e embaixo), fonte maior, entrelinha 1,5, texto justificado e tabelas com linhas. Os gráficos são dimensionados para não cortar rótulos.
+O **PDF** funciona como **anexo** ao laudo: mantém os dados, cálculos e gráficos, mas não repete a identificação, os pressupostos, a qualificação legal nem a assinatura — isso fica no laudo principal. Ele usa margens ABNT (3 cm no topo e à esquerda, 2 cm à direita e embaixo), fonte maior, entrelinha 1,5, texto justificado e tabelas com linhas. Os gráficos são dimensionados para não cortar rótulos e as equações também são incluídas como imagem.
 
 O **DOCX** é um laudo completo no esqueleto da NBR 14653-2, seção 10.1, com capa, resumo executivo, sumário e os tópicos:
 
@@ -321,7 +320,7 @@ O **DOCX** é um laudo completo no esqueleto da NBR 14653-2, seção 10.1, com c
 14. referências;
 15. anexos.
 
-O DOCX usa A4, margens 3/2 cm, Arial 12, entrelinha 1,5, texto justificado, recuo de primeira linha e número de página no alto à direita. Tópicos sem dado ficam com o título e a indicação **Não informado. Preencher no laudo.**; Referências e Anexos já saem com um esqueleto de exemplo para você completar.
+O DOCX usa A4, margens 3/2 cm, Arial 12, entrelinha 1,5, texto justificado, recuo de primeira linha e número de página no alto à direita. As equações são incluídas como imagem em PNG, com fundo branco e traço preto. Tópicos sem dado ficam com o título e a indicação **Não informado. Preencher no laudo.**; Referências e Anexos já saem com um esqueleto de exemplo para você completar.
 
 O resumo traz equação, estimativa, IC, valor adotado, graus e gráfico de aderência em uma página.
 
@@ -346,45 +345,45 @@ Antes de exportar, clique em **Dados do trabalho** e preencha:
 
 O relatório mostra esses campos, a equação na forma original de Y, a descrição/critério das variáveis, o gráfico Observados × Estimados, a tabela de elasticidades e o bloco de assinatura.
 
-## 11. Teclado e acessibilidade
+## 10. Teclado e ajuda
 
 - Use **Tab** para andar entre os campos.
 - **Enter** confirma o botão principal dos diálogos.
 - **Espaço** marca/desmarca caixas e aciona botões focados.
-- **F1** abre a Ajuda Rápida.
+- **F1** abre a Ajuda Rápida, com o passo a passo e um **Glossário de medições** (R², R² ajustado, IC, IP, arbítrio, VIF, Cook, Mahalanobis e outros termos).
 - **Ctrl+N**, **Ctrl+O** e **Ctrl+S** criam, abrem e salvam.
-- O seletor **Tamanho da fonte** no topo tem Normal (12 pt), Grande (14 pt) e Muito Grande (16 pt). A escolha fica guardada.
+- O seletor **Tamanho da fonte** no topo tem Pequena (10 pt, padrão), Normal (12 pt), Grande (14 pt) e Muito Grande (16 pt). A escolha fica guardada.
 - Passe o mouse sobre termos técnicos para ver explicações em linguagem simples.
 - Em **Ajuda Rápida → Tabelas NBR 14653-2**, consulte as Tabelas 1, 2, 3, 4, 5, 6, 7, 10 e 11 com os critérios, graus e pontos. As tabelas podem ser copiadas.
 
 ![Consulta das tabelas NBR](telas/tabelas_nbr.png)
 
-## 12. Se algo der errado
+## 11. Se algo der errado
 
 - O programa nunca mostra “traceback”. Ele mostra uma mensagem curta.
 - O detalhe técnico fica em `~/.local/share/SisAvalia/erros.log`.
 - Se o programa não abrir, confira se o pacote foi instalado pelo Instalador de Pacotes e tente abrir pelo menu.
 - Se um arquivo `.sisproj` não abrir, ele pode estar danificado. O backup automático pode ter a versão anterior.
 
-## 13. Dependências e instalação
+## 12. Dependências e instalação
 
 Se você recebeu o `.deb` ou o AppImage, **não precisa instalar Python**. O programa já vem com tudo o que usa. O SisAvalia verifica os componentes ao abrir e avisa se o pacote estiver incompleto.
 
-O AppImage 1.2.3 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
+O AppImage 1.3.0 é compatível com **glibc 2.28 ou superior** (Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+). Sistemas muito antigos, como Ubuntu 18.04 ou Mint 19, precisam de uma versão específica.
 
 Para **Windows**, baixe o ZIP da release, descompacte e clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
 
 O programa não baixa nem instala bibliotecas sozinho no seu computador. Isso evita pedir senha, gastar internet sem aviso ou mexer no Python do sistema. Se aparecer “Instalação incompleta”, feche e instale novamente o pacote.
 
-## 14. Telas pequenas e tema
+## 13. Telas pequenas, fonte e tema
 
-Em notebooks com tela de **1366 × 768** ou menor, a aba **1. Dados** passa a ter rolagem vertical. Use a barra de rolagem à direita para chegar ao painel **Variáveis do modelo** e à lista de variáveis. Os campos não ficam mais sobrepostos.
+Em notebooks com tela de **1366 × 768** ou menor, a aba **1. Dados** tem rolagem vertical. O painel **Variáveis do modelo** fica acima da tabela, seguido da exploração e da tabela. Use a barra de rolagem à direita para percorrer a página.
 
-O menu superior e as abas continuam acessíveis. Se a fonte estiver em **Grande** ou **Muito Grande**, a janela pode precisar de mais largura; nesse caso, aumente a janela ou volte para **Normal**.
+O menu superior e as abas continuam acessíveis. Se a fonte estiver em **Grande** ou **Muito Grande**, a janela pode precisar de mais largura; nesse caso, aumente a janela ou volte para **Pequena** ou **Normal**.
 
 ![Aba Dados em 1366 × 768, com rolagem e sem sobreposição](telas/tela_baixa_resolucao.png)
 
-## 15. Limites do programa
+## 14. Limites do programa
 
 O SisAvalia faz **OLS** (mínimos quadrados ordinários) com uma equação linear. Não faz regressão não linear, DEA, redes neurais, Box-Cox, PRESS, coeficiente forçado, senha no arquivo nem máxima verossimilhança separada. O tratamento por fatores é feito no plugin próprio, como apoio; a decisão e a responsabilidade continuam do avaliador.
 

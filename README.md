@@ -15,7 +15,7 @@ O SisAvalia é distribuído de duas formas. **O Python e as bibliotecas já vão
 
 ### Linux Mint — arquivo `.deb` (três passos)
 
-1. **Baixe o arquivo `sisavalia_1.2.3_amd64.deb`** (ou a versão mais nova) e guarde na pasta Downloads.
+1. **Baixe o arquivo `sisavalia_1.3.0_amd64.deb`** (ou a versão mais nova) e guarde na pasta Downloads.
 2. **Abra o arquivo com o Instalador de Pacotes do Mint**: clique duas vezes no `.deb`, confira o nome SisAvalia e clique em **Instalar**. Se o sistema pedir a senha, digite a senha do computador.
 3. **Abra o SisAvalia pelo menu**: menu do Mint → **Educação** (ou busque por **SisAvalia**) → clique no ícone. O programa abre sem janela de terminal.
 
@@ -23,9 +23,9 @@ Depois de instalado, você também pode **clicar duas vezes em um arquivo `.sisp
 
 ### Fedora e outras distribuições — AppImage (três passos)
 
-> **Compatibilidade do AppImage 1.2.3:** glibc **2.28 ou superior**. Funciona em Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+ e Fedora moderno. Não funciona em Ubuntu 18.04/Mint 19 (glibc 2.27). O pacote foi verificado em Debian 10 (glibc 2.28).
+> **Compatibilidade do AppImage 1.3.0:** glibc **2.28 ou superior**. Funciona em Linux Mint 20/21/22, Ubuntu 20.04+, Debian 10+ e Fedora moderno. Não funciona em Ubuntu 18.04/Mint 19 (glibc 2.27). O pacote foi verificado em Debian 10 (glibc 2.28).
 
-1. **Baixe o arquivo `SisAvalia-1.2.3-x86_64.AppImage`**.
+1. **Baixe o arquivo `SisAvalia-1.3.0-x86_64.AppImage`**.
 2. Se o gerenciador de arquivos não abrir com dois cliques, clique com o botão direito → **Propriedades** → marque **Permitir execução** (ou “Executável”).
 3. **Clique duas vezes no AppImage**. O programa abre como qualquer aplicativo, sem instalar Python e sem terminal.
 
@@ -33,13 +33,13 @@ Em algumas distribuições pode ser necessário instalar o suporte a AppImage (`
 
 ### Windows
 
-1. Baixe `SisAvalia-1.2.3-windows-x64.zip` na página de Releases.
+1. Baixe `SisAvalia-1.3.0-windows-x64.zip` na página de Releases.
 2. Descompacte em uma pasta.
 3. Clique duas vezes em `SisAvalia.exe`. Não é preciso instalar Python.
 
 O programa **verifica os componentes na abertura**. Se o pacote estiver incompleto, mostra uma mensagem simples; a verificação também pode ser feita por `SisAvalia --verificar-instalacao`.
 
-O AppImage de teste também fica disponível na [página de Releases](https://github.com/brunomendesdecarvalho/sisavalia/releases/latest). Se você recebeu esta pasta já compilada, ele está em `dist/SisAvalia-1.2.3-x86_64.AppImage` (gerado em Debian 10). A soma de verificação está em `dist/SHA256SUMS.txt`.
+O AppImage de teste também fica disponível na [página de Releases](https://github.com/brunomendesdecarvalho/sisavalia/releases/latest). Se você recebeu esta pasta já compilada, ele está em `dist/SisAvalia-1.3.0-x86_64.AppImage` (gerado em Debian 10). A soma de verificação está em `dist/SHA256SUMS.txt`.
 
 ### Por que não instalar Python no cliente
 
@@ -54,8 +54,10 @@ Instalação mais detalhada, para casos de dúvida: [docs/INSTALACAO.md](docs/IN
 - Definir Y, X, tipos de variável (incluindo Código ajustado), descrição/critério da escala, transformações (x, ln(x), 1/x, x², √x) e sinal esperado.
 - Checar micronumerosidade por categoria, VIF (amarelo > 5, vermelho > 10) e coerência do avaliando.
 - Alternar entre IC 80% e IP 80%, calcular o intervalo admissível e arredondar valor/limites em até 1%.
-- Explorar estatísticas, vazios, dispersões e histogramas.
+- Explorar estatísticas, vazios, dispersões e histogramas dentro da própria aba Dados, acima da tabela.
 - Calcular uma equação OLS dirigida ou pedir sugestões de equações (até 1.500 especificações completas; acima disso, busca simplificada com teto de 400 ajustes).
+- Ver a equação em LaTeX e como imagem, com cópia e exportação em PNG.
+- Usar bandas de confiança e de arbítrio na aderência, resíduos padronizados com ±2 desvios e efeito marginal com bandas de confiança e predição.
 - Ler ANOVA, coeficientes, R², R² ajustado, correlação, aderência, curva da função e elasticidades.
 - Projetar imóveis avaliandos com **IC 80%**, intervalo de predição, campo de arbítrio de ±15% e valor adotado justificado.
 - Ver o enquadramento simplificado nos graus de **fundamentação** e **precisão** da NBR 14653-2, incluindo extrapolação e teto de código alocado.
@@ -69,8 +71,8 @@ Instalação mais detalhada, para casos de dúvida: [docs/INSTALACAO.md](docs/IN
 1. Na tela inicial, clique em **Abrir exemplo**.
 2. Leia o aviso amarelo: os dados são fictícios.
 3. Vá à aba **1. Dados** e veja como as variáveis estão configuradas.
-4. Na aba **3. Regressão & ANOVA**, clique em **Calcular este modelo** ou **Sugerir equações**.
-5. Na aba **4. Avaliando & NBR 14653**, clique em **Incluir avaliando** e preencha os campos.
+4. Na aba **2. Regressão & ANOVA**, clique em **Calcular este modelo** ou **Sugerir equações**.
+5. Na aba **3. Avaliando & NBR 14653**, clique em **Incluir avaliando** e preencha os campos.
 6. Confira os graus, adote um valor dentro do intervalo e clique em **Exportar Relatório**.
 7. Escolha **PDF**, marque ou não **Modo resumo (1 página)** e clique em **Gerar relatório**. Ao terminar, use **OK**.
 
@@ -125,7 +127,7 @@ Gerar um AppImage portátil (em ambiente com glibc ≤ 2.28, por exemplo Debian 
 ./packaging/build_appimage.sh
 ```
 
-O build Windows é feito pelo workflow `.github/workflows/build-windows.yml` (GitHub Actions, Python 3.12/PyInstaller) e gera `SisAvalia-1.2.3-windows-x64.zip`.
+O build Windows é feito pelo workflow `.github/workflows/build-windows.yml` (GitHub Actions, Python 3.12/PyInstaller) e gera `SisAvalia-1.3.0-windows-x64.zip`.
 
 Os scripts usam PyInstaller `--windowed --onedir`; o `.deb` cria atalho no menu, ícone e associação de arquivos `.sisproj`; o AppImage gera um arquivo único executável. O AppImage pode baixar o `appimagetool` na primeira compilação.
 

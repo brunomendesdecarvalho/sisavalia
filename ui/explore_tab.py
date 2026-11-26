@@ -26,9 +26,11 @@ from .widgets import (
 
 
 class ExploreTab(QWidget):
-    def __init__(self, manager: DataManager, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, manager: DataManager, parent: Optional[QWidget] = None,
+                 embedded: bool = False) -> None:
         super().__init__(parent)
         self.manager = manager
+        self.embedded = embedded
         self._loading = False
         self.evaluation: Optional[EvaluationResult] = None
         self._build_ui()
@@ -37,14 +39,22 @@ class ExploreTab(QWidget):
     def _build_ui(self) -> None:
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        inner = QWidget()
-        root = QVBoxLayout(inner)
-        root.setContentsMargins(14, 12, 14, 12)
-        root.setSpacing(10)
-        title = QLabel("2. Explorar")
-        title.setObjectName("PageTitle")
+        if self.embedded:
+            root = outer
+            root.setContentsMargins(0, 0, 0, 0)
+            root.setSpacing(8)
+            scroll = None
+            inner = self
+        else:
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            inner = QWidget()
+            root = QVBoxLayout(inner)
+            root.setContentsMargins(14, 12, 14, 12)
+            root.setSpacing(10)
+        title_text = "Explorar os dados" if self.embedded else "2. Explorar"
+        title = QLabel(title_text)
+        title.setObjectName("SectionTitle" if self.embedded else "PageTitle")
         root.addWidget(title)
         subtitle = QLabel(
             "Confira a faixa dos dados, os vazios e os pontos muito diferentes antes de montar a equação. "
@@ -97,16 +107,20 @@ class ExploreTab(QWidget):
         plots_split.addWidget(self.scatter_plot)
         plots_split.addWidget(self.hist_plot)
         plots_split.setSizes([650, 650])
-        plots_split.setMinimumHeight(560)
+        chart_height = 360 if self.embedded else 560
+        plots_split.setMinimumHeight(chart_height)
         root.addWidget(plots_split, 1)
-        root.addStretch(1)
-        scroll.setWidget(inner)
-        outer.addWidget(scroll)
+        if self.embedded:
+            root.addStretch(0)
+        else:
+            root.addStretch(1)
+            scroll.setWidget(inner)
+            outer.addWidget(scroll)
         self.scatter_x.currentIndexChanged.connect(self.refresh_plots)
         self.scatter_y.currentIndexChanged.connect(self.refresh_plots)
         self.hist_var.currentIndexChanged.connect(self.refresh_plots)
-        self.scatter_plot.setMinimumHeight(560)
-        self.hist_plot.setMinimumHeight(560)
+        self.scatter_plot.setMinimumHeight(chart_height)
+        self.hist_plot.setMinimumHeight(chart_height)
 
     # --------------------------------------------------------------- carga
     def set_manager(self, manager: DataManager) -> None:
@@ -130,6 +144,9 @@ class ExploreTab(QWidget):
 
     def _fill_combos(self) -> None:
         numeric = self.manager.numeric_columns()
+        current_x = self.scatter_x.currentText()
+        current_y = self.scatter_y.currentText()
+        current_hist = self.hist_var.currentText()
         for combo in (self.scatter_x, self.scatter_y, self.hist_var):
             combo.blockSignals(True)
             combo.clear()
@@ -147,10 +164,17 @@ class ExploreTab(QWidget):
                     continue
                 preferred_x = name
                 break
-        if preferred_x:
+        if current_x in numeric:
+            self.scatter_x.setCurrentText(current_x)
+        elif preferred_x:
             self.scatter_x.setCurrentText(preferred_x)
+        if current_hist in numeric:
+            self.hist_var.setCurrentText(current_hist)
+        elif preferred_x:
             self.hist_var.setCurrentText(preferred_x)
-        if self.manager.y_column in numeric:
+        if current_y in numeric:
+            self.scatter_y.setCurrentText(current_y)
+        elif self.manager.y_column in numeric:
             self.scatter_y.setCurrentText(self.manager.y_column)
         elif numeric:
             self.scatter_y.setCurrentIndex(len(numeric) - 1)
@@ -244,6 +268,22 @@ class ExploreTab(QWidget):
                     "O detalhe técnico foi registrado em erros.log."
                 )
 
+    def _series_and_label(self, name: str) -> tuple[pd.Series, str]:
+        """Aplica a transformação configurada em Y/X e devolve o rótulo do eixo."""
+        raw = pd.to_numeric(self.manager.df[name], errors="coerce")
+        transform = "x"
+        if name == self.manager.y_column:
+            transform = self.manager.y_transform
+        elif name in self.manager.x_config:
+            transform = str(self.manager.x_config[name].get("transformation", "x"))
+        if transform == "x":
+            return raw, name
+        from core.data_manager import transform_series, transformation_label
+        try:
+            return transform_series(raw, transform), transformation_label(name, transform)
+        except ValueError:
+            return raw, name
+
     def _plot_scatter(self) -> None:
         x_name = self.scatter_x.currentText()
         y_name = self.scatter_y.currentText()
@@ -251,8 +291,8 @@ class ExploreTab(QWidget):
         if not x_name or not y_name:
             self.scatter_plot.clear_plot("Escolha as variáveis para ver a dispersão.")
             return
-        x_all = pd.to_numeric(self.manager.df[x_name], errors="coerce")
-        y_all = pd.to_numeric(self.manager.df[y_name], errors="coerce")
+        x_all, x_label = self._series_and_label(x_name)
+        y_all, y_label = self._series_and_label(y_name)
         valid = mask & x_all.notna().to_numpy() & y_all.notna().to_numpy()
         positions = [i for i in range(len(self.manager.df)) if valid[i]]
         if len(positions) < 2:
@@ -285,8 +325,8 @@ class ExploreTab(QWidget):
             hover_x.append(px)
             hover_y.append(py)
             hover_labels.append(f"Avaliando: {self.evaluation.name} (projetado)")
-        charting.tidy(ax, title=f"Dispersão: {x_name} × {y_name}",
-                      xlabel=x_name, ylabel=y_name, x_values=xs, y_values=ys)
+        charting.tidy(ax, title=f"Dispersão: {x_label} × {y_label}",
+                      xlabel=x_label, ylabel=y_label, x_values=xs, y_values=ys)
         ax.legend(loc="best")
         fig.tight_layout()
         self.scatter_plot.set_figure(fig, x_values=hover_x, y_values=hover_y, labels=hover_labels)
@@ -299,10 +339,11 @@ class ExploreTab(QWidget):
         if not name:
             self.hist_plot.clear_plot("Escolha uma variável para o histograma.")
             return
-        values = pd.to_numeric(self.manager.df[name], errors="coerce")[self.manager.active_mask()].dropna()
+        series, label = self._series_and_label(name)
+        values = series[self.manager.active_mask()].dropna()
         if len(values) < 1:
             self.hist_plot.clear_plot("Não há valores ligados para esta variável.")
             return
         fig, _ = charting.histogram(values.to_numpy(dtype=float),
-                                    title=f"Histograma de {name}", xlabel=name)
+                                    title=f"Histograma de {label}", xlabel=label)
         self.hist_plot.set_figure(fig)

@@ -73,10 +73,10 @@ Use a amostra **Abrir exemplo**. Todos os testes abaixo podem ser feitos apenas 
 
 ### CT-06 — Sugerir equações
 
-1. Na aba 3, clique em **Sugerir equações**.
+1. Na aba 2, clique em **Sugerir equações**.
 2. **Esperado:** a barra de progresso aparece, a busca termina e a tabela mostra até 30 equações com R², R² ajustado, p do F, pior p, sinais, n e grau estimado.
 3. Selecione a primeira e clique em **Usar este modelo**.
-4. **Esperado:** a equação vai para a aba 1, o modelo é recalculado e aparece a nova equação na aba 3.
+4. **Esperado:** a equação vai para a aba 1, o modelo é recalculado e aparece a nova equação na aba 2.
 5. **Esperado:** o texto “A sugestão não substitui o seu julgamento.” está visível.
 
 ### CT-07 — Cancelar a busca
@@ -87,7 +87,7 @@ Use a amostra **Abrir exemplo**. Todos os testes abaixo podem ser feitos apenas 
 
 ### CT-08 — Dois avaliandos
 
-1. Na aba 4, clique em **Incluir avaliando**.
+1. Na aba 3, clique em **Incluir avaliando**.
 2. Nome: `Apartamento A`; Area_m2: `80`; Padrao: `2`; Idade_anos: `5`.
 3. Repita com `Apartamento B`; Area_m2: `120`; Padrao: `3`; Idade_anos: `2`.
 4. **Esperado:** duas linhas na tabela, cada uma com estimativa, IC 80%, adotado, fundamentação e precisão.
@@ -137,7 +137,7 @@ Use a amostra **Abrir exemplo**. Todos os testes abaixo podem ser feitos apenas 
 
 ### CT-15 — Resíduos e Cook
 
-1. Vá à aba 5.
+1. Vá à aba 4.
 2. **Esperado:** semáforo das premissas, três faixas de normalidade, Shapiro-Wilk como linha extra, Breusch-Pagan, VIF, pares de correlação e Durbin-Watson informativo.
 3. Confira a tabela: resíduo relativo ≥ 40% amarelo, ≥ 70% vermelho, |z| > 2 destacado.
 4. Clique em **Desativar pontos influentes (Cook)**.
@@ -150,7 +150,7 @@ Use a amostra **Abrir exemplo**. Todos os testes abaixo podem ser feitos apenas 
 
 ### CT-17 — K-médias
 
-1. Na aba 6, marque duas ou mais variáveis.
+1. Na aba 5, marque duas ou mais variáveis.
 2. Escolha K = 3 e clique em **Rodar K-médias**.
 3. **Esperado:** gráfico 2D, cotovelo e tamanho dos grupos.
 4. Clique em **Gravar coluna Cluster**.
@@ -163,7 +163,7 @@ Use a amostra **Abrir exemplo**. Todos os testes abaixo podem ser feitos apenas 
 
 ### CT-19 — Simulação
 
-1. Na aba 7, escolha Normal, média 100, desvio 15, N = 1000.
+1. Na aba 6, escolha Normal, média 100, desvio 15, N = 1000.
 2. Clique em **Gerar simulação**.
 3. **Esperado:** histograma e estatísticas.
 4. Exporte `.csv` e confira no Calc que o separador é `;` e o decimal é vírgula.
@@ -172,7 +172,7 @@ Use a amostra **Abrir exemplo**. Todos os testes abaixo podem ser feitos apenas 
 
 ### CT-20 — Plugin
 
-1. Na aba 8, selecione **Resumo estatístico**.
+1. Na aba 7, selecione **Resumo estatístico**.
 2. Clique em **Executar plugin**.
 3. **Esperado:** abre uma janela com uma tabela por variável numérica, sem alterar a amostra.
 
@@ -230,7 +230,7 @@ Use a amostra **Abrir exemplo**. Todos os testes abaixo podem ser feitos apenas 
 
 ### CT-29 — Gráficos ajustados
 
-1. Abra a aba 3 e role até os gráficos.
+1. Abra a aba 2 e role até os gráficos.
 2. Reduza e aumente a janela e o tamanho da fonte.
 3. **Esperado:** os eixos, os rótulos e os títulos dos gráficos se ajustam ao espaço do cartão, sem ficar cortados; as imagens continuam legíveis.
 

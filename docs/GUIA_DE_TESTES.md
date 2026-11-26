@@ -2,7 +2,7 @@
 
 **Público:** avaliador, engenheiro ou técnico que conhece avaliação de imóveis, mas não precisa saber programar.  
 **Objetivo:** verificar se o SisAvalia entrega o fluxo de trabalho de uma avaliação — importar, explorar, modelar, avaliar e exportar — com resultados coerentes e em linguagem compreensível.  
-**Versão:** 1.2.3
+**Versão:** 1.3.0
 **Data de referência:** novembro de 2026
 
 > **Dados de exemplo. Não use em laudo.** A amostra que acompanha o programa é fictícia e serve apenas para este roteiro.
@@ -98,7 +98,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 2. Confira o número de linhas e a ordem das colunas.
 3. Verifique se valores com vírgula decimal foram reconhecidos.
 4. Confira a coluna de rótulo e as colunas de texto (endereço, fonte, observação).
-5. Se quiser, use **Colar do Calc** com uma tabela copiada do software de planilhas de sua preferência.
+5. Se quiser, use **Colar planilha** com uma tabela copiada do software de planilhas de sua preferência.
 
 **Resultado esperado**
 - A tabela mostra todos os imóveis importados.
@@ -139,7 +139,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 **Objetivo de negócio:** identificar erros de digitação, vazios e imóveis muito diferentes antes de modelar.
 
 **Como testar**
-1. Vá à aba **2. Explorar**.
+1. Na aba **1. Dados**, desça até a seção **Explorar os dados**.
 2. Confira mínimo, máximo, média, mediana, desvio padrão e vazios de cada variável.
 3. Veja a dispersão de Área_m2 × Valor_unitario.
 4. Veja o histograma de Área_m2.
@@ -184,7 +184,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 **Objetivo de negócio:** usar a busca automática como apoio, sem transformar a sugestão em decisão automática.
 
 **Como testar**
-1. Na aba 3, clique em **Sugerir equações**.
+1. Na aba 2, clique em **Sugerir equações**.
 2. Observe a barra de progresso e o texto de aviso.
 3. Selecione a primeira equação e clique em **Usar este modelo**.
 4. Confira se a aba 1 foi preenchida e se o modelo foi recalculado.
@@ -450,7 +450,7 @@ O sistema será considerado aceito para uso assistido se **todos** os itens abai
 
 ### T19 — Build Windows
 
-1. Baixe o ZIP `SisAvalia-1.2.3-windows-x64.zip` da release.
+1. Baixe o ZIP `SisAvalia-1.3.0-windows-x64.zip` da release.
 2. Descompacte em uma pasta.
 3. Clique duas vezes em `SisAvalia.exe`.
 
@@ -557,3 +557,14 @@ Essas informações permitem corrigir o problema sem exigir conhecimento de prog
 3. Confirme o aviso de que o anexo integra o laudo principal.
 4. Confira as linhas de grade nas tabelas e os gráficos sem cortes.
 5. Ao terminar a exportação, o alerta deve ter apenas o botão **OK**.
+
+
+### T25 — Fonte pequena, equação e novos gráficos
+
+1. Abra o programa e confira que a fonte está em **Pequena**, com o seletor no topo.
+2. Calcule o modelo e abra a aba **2. Regressão & ANOVA**.
+3. Confira a equação em LaTeX, a imagem formatada abaixo e os botões **Copiar imagem**, **Salvar PNG** e **Copiar LaTeX**.
+4. Mude a transformação de Y para **ln(x)** na aba 1 e veja o histograma mudar para a variável transformada.
+5. Confira a aderência com as bandas de IC 80% e arbítrio ±15%, os resíduos padronizados com linhas ±2 e o efeito marginal com bandas de confiança/predição.
+6. Role a página com o ponteiro sobre um dropdown; a opção não deve mudar.
+7. Abra **Ajuda Rápida** e confira o Glossário de medições.

@@ -50,7 +50,7 @@ class EvaluationTab(QWidget):
         root = QVBoxLayout(inner)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(10)
-        title = QLabel("4. Avaliando & NBR 14653")
+        title = QLabel("3. Avaliando & NBR 14653")
         title.setObjectName("PageTitle")
         root.addWidget(title)
         subtitle = QLabel(

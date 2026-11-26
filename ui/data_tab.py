@@ -19,6 +19,7 @@ from core.data_manager import (
 )
 from core.formatting import format_number, is_missing
 from .clipboard import copy_text
+from .explore_tab import ExploreTab
 from .dialogs import (
     AddColumnDialog, CalculatedColumnDialog, DeleteColumnDialog, EvaluatedDialog,
     MetadataDialog, RenameColumnDialog,
@@ -88,7 +89,7 @@ class DataTab(QWidget):
         actions1 = QGridLayout()
         actions1.setSpacing(7)
         self.import_button = button("Importar planilha", "open")
-        self.paste_button = button("Colar do Calc", "copy")
+        self.paste_button = button("Colar planilha", "copy")
         self.add_row_button = button("Incluir linha", "add")
         self.delete_row_button = button("Excluir linha", "delete", danger=True)
         self.add_column_button = button("Incluir coluna", "add")
@@ -143,12 +144,14 @@ class DataTab(QWidget):
         self.alert_banner = Banner("", "info")
         self.alert_banner.setVisible(False)
         root.addWidget(self.alert_banner)
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setChildrenCollapsible(False)
-        left = QWidget()
-        left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(6)
+        # Configuração do modelo e exploração ficam acima da tabela, como
+        # painéis de trabalho; a tabela ocupa a parte inferior da página.
+        root.addWidget(self._build_variables_panel())
+        self.explore_panel = ExploreTab(self.manager, self, embedded=True)
+        self.explore_panel.setMinimumHeight(520)
+        root.addWidget(self.explore_panel)
+        table_card = Card(title="Imóveis da amostra",
+                          subtitle="Cada linha é um imóvel. A coluna Ativo tira o imóvel dos cálculos sem apagar os dados.")
         self.table = QTableWidget()
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -164,19 +167,15 @@ class DataTab(QWidget):
         self.table.setWordWrap(False)
         self.table.itemChanged.connect(self.cell_changed)
         self.table.setAccessibleName("Tabela de dados dos imóveis")
-        left_layout.addWidget(self.table, 1)
+        self.table.setMinimumHeight(360)
+        table_card.add(self.table)
         self.table_hint = QLabel(
             "Dica: desmarque Ativo para tirar o imóvel das contas. Clique duas vezes numa célula para corrigir."
         )
         self.table_hint.setObjectName("Hint")
         self.table_hint.setWordWrap(True)
-        left_layout.addWidget(self.table_hint)
-        splitter.addWidget(left)
-        splitter.addWidget(self._build_variables_panel())
-        splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 2)
-        splitter.setSizes([800, 570])
-        root.addWidget(splitter, 1)
+        table_card.add(self.table_hint)
+        root.addWidget(table_card, 1)
         scroll.setWidget(inner)
         outer.addWidget(scroll)
 
@@ -211,7 +210,7 @@ class DataTab(QWidget):
         panel.add(hint)
         self.var_scroll = QScrollArea()
         self.var_scroll.setWidgetResizable(True)
-        self.var_scroll.setMinimumHeight(300)
+        self.var_scroll.setMinimumHeight(220)
         self.var_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.var_scroll.setAccessibleName("Configuração das variáveis independentes")
         self.var_container = QWidget()
@@ -227,6 +226,7 @@ class DataTab(QWidget):
         self.manager = manager
         self._sort_column = -1
         self._sort_ascending = True
+        self.explore_panel.set_manager(manager)
         self.refresh()
 
     def refresh(self) -> None:
@@ -235,6 +235,7 @@ class DataTab(QWidget):
             self._refresh_table()
             self._refresh_variable_panel()
             self._update_sample_note()
+            self.explore_panel.refresh()
             self._validate()
             self.undo_button.setEnabled(self.manager.can_undo())
             self.table_hint.setText(
@@ -528,6 +529,7 @@ class DataTab(QWidget):
         if value and value in self.manager.x_config:
             self.manager.x_config[value]["selected"] = False
         self.refresh()
+        self.explore_panel.refresh()
         self.data_changed.emit("config")
 
     def y_transform_changed(self, text: str) -> None:
@@ -540,6 +542,7 @@ class DataTab(QWidget):
             return
         self.manager.set_y_transform(text)
         self._validate()
+        self.explore_panel.refresh()
         self.data_changed.emit("config")
 
     def _transform_problem(self, column: Optional[str], transformation: str) -> str:
@@ -561,6 +564,7 @@ class DataTab(QWidget):
         if self._loading:
             return
         self.manager.label_column = self.label_combo.currentData() or None
+        self.explore_panel.refresh()
         self.data_changed.emit("data")
 
     def var_selection_changed(self, column: str, state: int) -> None:
@@ -573,6 +577,7 @@ class DataTab(QWidget):
             return
         self.manager.set_x(column, selected=selected)
         self._validate()
+        self.explore_panel.refresh()
         self.data_changed.emit("config")
 
     def var_type_changed(self, column: str, value: str) -> None:
@@ -602,6 +607,7 @@ class DataTab(QWidget):
             self.refresh()
             return
         self._validate()
+        self.explore_panel.refresh()
         self.data_changed.emit("config")
 
     def var_sign_changed(self, column: str, value: str) -> None:
@@ -740,7 +746,7 @@ class DataTab(QWidget):
         if self.manager.has_data():
             if not ask_yes_no(
                 self, "Substituir os dados atuais?",
-                "Há dados na tabela. Colar do Calc substitui toda a amostra atual. Deseja continuar?",
+                "Há dados na tabela. Colar planilha substitui toda a amostra atual. Deseja continuar?",
                 yes_text="Substituir", no_text="Cancelar",
             ):
                 return

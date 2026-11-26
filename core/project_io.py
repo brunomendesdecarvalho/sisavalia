@@ -53,7 +53,7 @@ class ProjectIO:
         target.parent.mkdir(parents=True, exist_ok=True)
         state = manager.to_state()
         state["app"] = PROJECT_MAGIC
-        state["app_version"] = "1.2.3"
+        state["app_version"] = "1.3.0"
         state["saved_at"] = datetime.now().isoformat(timespec="seconds")
         if extra_state:
             state["ui"] = extra_state
@@ -151,7 +151,7 @@ class ProjectIO:
 
     # ---------------------------------------------------------------- config
     def read_config(self) -> dict[str, Any]:
-        default = {"recent_files": [], "theme": "Normal", "last_directory": str(Path.home())}
+        default = {"recent_files": [], "theme": "Pequena", "theme_explicit": False, "last_directory": str(Path.home())}
         if not self.config_file.exists():
             return default
         try:
@@ -195,11 +195,18 @@ class ProjectIO:
         self.write_config(config)
 
     def get_theme(self) -> str:
-        return str(self.read_config().get("theme", "Normal"))
+        config = self.read_config()
+        theme = str(config.get("theme", "Pequena"))
+        # Configurações antigas não tinham a fonte pequena. Se o usuário nunca
+        # escolheu explicitamente, adota a nova fonte compacta como padrão.
+        if not bool(config.get("theme_explicit", False)) and theme == "Normal":
+            theme = "Pequena"
+        return theme
 
     def set_theme(self, theme: str) -> None:
         config = self.read_config()
         config["theme"] = theme
+        config["theme_explicit"] = True
         self.write_config(config)
 
     def get_last_directory(self) -> str:

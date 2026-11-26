@@ -45,7 +45,7 @@ class DiagnosticsTab(QWidget):
         root = QVBoxLayout(inner)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(10)
-        title = QLabel("5. Resíduos & Cook")
+        title = QLabel("4. Resíduos & Cook")
         title.setObjectName("PageTitle")
         root.addWidget(title)
         subtitle = QLabel(
@@ -55,7 +55,7 @@ class DiagnosticsTab(QWidget):
         subtitle.setObjectName("Hint")
         subtitle.setWordWrap(True)
         root.addWidget(subtitle)
-        self.top_banner = Banner("Calcule o modelo na aba 3 para ver os diagnósticos.", "info")
+        self.top_banner = Banner("Calcule o modelo na aba 2 para ver os diagnósticos.", "info")
         root.addWidget(self.top_banner)
         self.category_banner = Banner("", "warning")
         self.category_banner.setVisible(False)
@@ -179,7 +179,7 @@ class DiagnosticsTab(QWidget):
         else:
             self.category_banner.setVisible(False)
         if fit is None or diagnostics is None:
-            self.top_banner.setText("Calcule o modelo na aba 3 para ver os diagnósticos.")
+            self.top_banner.setText("Calcule o modelo na aba 2 para ver os diagnósticos.")
             self.top_banner.set_role("info")
             self.top_banner.setVisible(True)
             for key in self.assumption_rows:
@@ -309,9 +309,12 @@ class DiagnosticsTab(QWidget):
         self.table.resizeColumnsToContents()
 
     def _fill_plots(self, fit: FitResult) -> None:
-        fig, _ = charting.residual_fitted(fit.fitted_original, fit.residuals, fit.labels)
-        self.resid_plot.set_figure(fig, x_values=fit.fitted_original, y_values=fit.residuals,
-                                   labels=fit.labels)
+        fig, _ = charting.residual_fitted(
+            fit.fitted_original, fit.residuals, fit.labels,
+            standardized=fit.standardized_residuals,
+        )
+        self.resid_plot.set_figure(fig, x_values=fit.fitted_original,
+                                   y_values=fit.standardized_residuals, labels=fit.labels)
         fig, _ = charting.qq_plot(fit.residuals)
         from scipy import stats
         resid = np.asarray(fit.residuals, dtype=float)

@@ -30,9 +30,9 @@ def test_janela_abre_exemplo_e_recalcula(tmp_path, monkeypatch):
             time.sleep(0.005)
         assert window.manager.n_active == 20
         assert window.fit is not None
-        assert window.workspace.count() == 8
+        assert window.workspace.count() == 7
         assert window.workspace.tabText(0).startswith("1. Dados")
-        assert window.workspace.tabText(7).startswith("8. Plugins")
+        assert window.workspace.tabText(6).startswith("7. Plugins")
         assert app.palette().color(QPalette.ColorRole.Window).name() == "#f8fafc"
         assert app.palette().color(QPalette.ColorRole.WindowText).name() == "#0f172a"
 
@@ -171,7 +171,7 @@ def test_avaliando_selecao_sobrevive_a_troca_de_aba(tmp_path, monkeypatch):
         assert window.evaluation_tab.selected_id == second["id"]
         window.workspace.setCurrentIndex(0)
         app.processEvents()
-        window.workspace.setCurrentIndex(3)
+        window.workspace.setCurrentIndex(2)
         for _ in range(10):
             app.processEvents()
             time.sleep(0.005)
@@ -214,3 +214,57 @@ def test_avaliando_incompleto_continua_editavel(tmp_path, monkeypatch):
         window.dirty = False
         window.close()
         app.processEvents()
+
+
+def test_aba_explorar_foi_integrada_aos_dados(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados7"))
+    app = QApplication.instance() or QApplication([])
+    apply_theme(app, "Pequena")
+    from ui.main_window import MainWindow
+    window = MainWindow()
+    window._startup_done = True
+    window.show()
+    try:
+        assert window.workspace.count() == 7
+        assert not hasattr(window, "explore_tab")
+        panel = window.data_tab.explore_panel
+        assert panel.window() is window
+        assert panel.embedded is True
+    finally:
+        window.dirty = False
+        window.close()
+        app.processEvents()
+
+
+def test_roda_nao_altera_combo_fora_do_popup(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "dados8"))
+    app = QApplication.instance() or QApplication([])
+    apply_theme(app, "Pequena")
+    from PySide6.QtWidgets import QComboBox, QLabel, QScrollArea, QVBoxLayout, QWidget
+    from PySide6.QtCore import QPoint, QPointF, Qt
+    from PySide6.QtGui import QWheelEvent
+    inner = QWidget()
+    layout = QVBoxLayout(inner)
+    for i in range(40):
+        layout.addWidget(QLabel(f"linha {i}"))
+    combo = QComboBox()
+    combo.addItems(["um", "dois", "três"])
+    combo.setCurrentText("dois")
+    layout.addWidget(combo)
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setWidget(inner)
+    scroll.resize(400, 300)
+    scroll.show()
+    app.processEvents()
+    scroll.verticalScrollBar().setValue(100)
+    event = QWheelEvent(
+        QPointF(10, 10), QPointF(10, 10), QPoint(0, -120), QPoint(0, -120),
+        Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier,
+        Qt.ScrollPhase.NoScrollPhase, False,
+    )
+    QApplication.sendEvent(combo, event)
+    app.processEvents()
+    assert combo.currentText() == "dois"
+    assert scroll.verticalScrollBar().value() > 100
+    scroll.close()

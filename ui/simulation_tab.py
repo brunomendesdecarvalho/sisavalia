@@ -60,7 +60,7 @@ class SimulationTab(QWidget):
         root = QVBoxLayout(inner)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(10)
-        title = QLabel("7. Simulação")
+        title = QLabel("6. Simulação")
         title.setObjectName("PageTitle")
         root.addWidget(title)
         subtitle = QLabel(

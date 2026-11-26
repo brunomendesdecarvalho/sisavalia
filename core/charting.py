@@ -30,7 +30,7 @@ _current_font_pt = 12
 
 def configure_matplotlib(font_pt: int = 12) -> None:
     global _current_font_pt
-    _current_font_pt = max(12, int(font_pt))
+    _current_font_pt = max(8, int(font_pt))
     matplotlib.rcParams.update({
         "font.family": "sans-serif",
         "font.sans-serif": ["DejaVu Sans", "Liberation Sans", "Noto Sans"],
@@ -148,36 +148,76 @@ def histogram(values: Sequence[float], *, title: str, xlabel: str,
 
 
 def fit_scatter(observed: Sequence[float], estimated: Sequence[float], labels: Sequence[str],
-                *, title: str = "Observado × estimado") -> tuple[Figure, Any]:
+                *, title: str = "Aderência: observado × estimado",
+                ci_low: Optional[Sequence[float]] = None,
+                ci_high: Optional[Sequence[float]] = None,
+                arbitrio_pct: float = 15.0) -> tuple[Figure, Any]:
     obs = np.asarray(observed, dtype=float)
     est = np.asarray(estimated, dtype=float)
     fig, ax = new_figure()
-    ax.scatter(est, obs, s=58, color=PRIMARY, alpha=0.85, edgecolor="white", linewidth=0.9, zorder=3,
-               label="Imóveis")
+    ax.scatter(est, obs, s=58, color=PRIMARY, alpha=0.85, edgecolor="white", linewidth=0.9,
+               zorder=4, label="Imóveis")
     finite = np.concatenate([obs[np.isfinite(obs)], est[np.isfinite(est)]])
     if len(finite):
-        low, high = float(np.min(finite)), float(np.max(finite))
+        values = [finite]
+        if ci_low is not None:
+            values.append(np.asarray(ci_low, dtype=float)[np.isfinite(ci_low)])
+        if ci_high is not None:
+            values.append(np.asarray(ci_high, dtype=float)[np.isfinite(ci_high)])
+        values = np.concatenate(values)
+        low, high = float(np.min(values)), float(np.max(values))
         pad = (high - low) * 0.05 if high > low else max(abs(high) * 0.05, 1.0)
-        line = [low - pad, high + pad]
+        line = np.array([low - pad, high + pad])
         ax.plot(line, line, color=RED, linestyle="--", linewidth=1.8, label="Reta de 45°")
+        if ci_low is not None and ci_high is not None:
+            cl = np.asarray(ci_low, dtype=float)
+            ch = np.asarray(ci_high, dtype=float)
+            order = np.argsort(est)
+            xs = est[order]
+            lo, hi = cl[order], ch[order]
+            valid = np.isfinite(xs) & np.isfinite(lo) & np.isfinite(hi)
+            if valid.sum() >= 2:
+                ax.fill_between(xs[valid], lo[valid], hi[valid], color=PRIMARY, alpha=0.14,
+                                linewidth=0, label="IC 80% da média")
+                ax.plot(xs[valid], lo[valid], color=PRIMARY, linewidth=1.1, alpha=0.75)
+                ax.plot(xs[valid], hi[valid], color=PRIMARY, linewidth=1.1, alpha=0.75)
+        if arbitrio_pct and arbitrio_pct > 0:
+            factor = float(arbitrio_pct) / 100.0
+            ax.plot(line, line * (1 - factor), color=YELLOW, linestyle=":", linewidth=1.5,
+                    label=f"Campo de arbítrio ±{format_number(arbitrio_pct, 0)}%")
+            ax.plot(line, line * (1 + factor), color=YELLOW, linestyle=":", linewidth=1.5)
+            ax.fill_between(line, line * (1 - factor), line * (1 + factor),
+                            color=YELLOW, alpha=0.06, linewidth=0)
+            ax.set_ylim(min(line[0], line[0] * (1 - factor)), max(line[1], line[1] * (1 + factor)))
         ax.set_xlim(line)
         ax.set_ylim(line)
-    tidy(ax, title=title, xlabel="Valor estimado pela equação", ylabel="Valor observado",
-         x_values=est, y_values=obs)
-    ax.legend(loc="upper left")
+    tidy(ax, title=title, xlabel="Valor estimado pela equação (Ŷ)",
+         ylabel="Valor observado (Y)", x_values=est, y_values=obs)
+    ax.legend(loc="upper left", fontsize=max(8, _current_font_pt - 3))
     fig.tight_layout()
     return fig, ax
 
 
-def residual_fitted(fitted: Sequence[float], residuals: Sequence[float], labels: Sequence[str]
-                    ) -> tuple[Figure, Any]:
+def residual_fitted(fitted: Sequence[float], residuals: Sequence[float], labels: Sequence[str],
+                    *, standardized: Optional[Sequence[float]] = None) -> tuple[Figure, Any]:
     est = np.asarray(fitted, dtype=float)
-    res = np.asarray(residuals, dtype=float)
+    res = np.asarray(standardized if standardized is not None else residuals, dtype=float)
     fig, ax = new_figure()
     ax.axhline(0, color=GRAY, linewidth=1.2, linestyle="-")
-    ax.scatter(est, res, s=58, color=PRIMARY, alpha=0.85, edgecolor="white", linewidth=0.9, zorder=3)
-    tidy(ax, title="Resíduos × valores ajustados", xlabel="Valor ajustado",
-         ylabel="Resíduo (observado − ajustado)", x_values=est, y_values=res)
+    if standardized is not None:
+        ax.axhline(2, color=RED, linewidth=1.3, linestyle="--", label="±2 desvios-padrão")
+        ax.axhline(-2, color=RED, linewidth=1.3, linestyle="--")
+        colors = [RED if (math.isfinite(v) and abs(v) > 2) else PRIMARY for v in res]
+        ax.scatter(est, res, s=58, c=colors, alpha=0.85, edgecolor="white", linewidth=0.9, zorder=3)
+        tidy(ax, title="Resíduos padronizados × valores ajustados",
+             xlabel="Valor ajustado", ylabel="Resíduo padronizado",
+             x_values=est, y_values=res)
+        ax.legend(loc="upper right")
+    else:
+        ax.scatter(est, res, s=58, color=PRIMARY, alpha=0.85, edgecolor="white",
+                   linewidth=0.9, zorder=3)
+        tidy(ax, title="Resíduos × valores ajustados", xlabel="Valor ajustado",
+             ylabel="Resíduo (observado − ajustado)", x_values=est, y_values=res)
     fig.tight_layout()
     return fig, ax
 
@@ -222,20 +262,40 @@ def stem_plot(values: Sequence[float], labels: Sequence[str], threshold: float, 
 
 def curve_plot(x: Sequence[float], y: Sequence[float], *, variable: str,
                point: Optional[tuple[float, float]] = None,
-               warning: str = "") -> tuple[Figure, Any]:
+               warning: str = "",
+               ci_low: Optional[Sequence[float]] = None,
+               ci_high: Optional[Sequence[float]] = None,
+               pi_low: Optional[Sequence[float]] = None,
+               pi_high: Optional[Sequence[float]] = None) -> tuple[Figure, Any]:
     x_arr = np.asarray(x, dtype=float)
     y_arr = np.asarray(y, dtype=float)
     fig, ax = new_figure()
-    ax.plot(x_arr, y_arr, color=PRIMARY, linewidth=2.3)
+    if pi_low is not None and pi_high is not None:
+        pl = np.asarray(pi_low, dtype=float)
+        ph = np.asarray(pi_high, dtype=float)
+        ax.fill_between(x_arr, pl, ph, color=YELLOW, alpha=0.12, linewidth=0,
+                        label="Predição 80%")
+        ax.plot(x_arr, pl, color=YELLOW, linestyle=":", linewidth=1.1)
+        ax.plot(x_arr, ph, color=YELLOW, linestyle=":", linewidth=1.1)
+    if ci_low is not None and ci_high is not None:
+        cl = np.asarray(ci_low, dtype=float)
+        ch = np.asarray(ci_high, dtype=float)
+        ax.fill_between(x_arr, cl, ch, color=PRIMARY, alpha=0.18, linewidth=0,
+                        label="Confiança 80% da média")
+        ax.plot(x_arr, cl, color=PRIMARY, linestyle="--", linewidth=1.1)
+        ax.plot(x_arr, ch, color=PRIMARY, linestyle="--", linewidth=1.1)
+    ax.plot(x_arr, y_arr, color=PRIMARY, linewidth=2.4, label="Efeito marginal")
     if point is not None:
-        ax.scatter([point[0]], [point[1]], s=110, color=RED, zorder=4, label="Avaliando")
-        ax.legend(loc="best")
-    title = f"Como o valor muda com {variable}"
+        ax.scatter([point[0]], [point[1]], s=110, color=RED, zorder=5, label="Avaliando")
+    title = f"Efeito marginal de {variable}"
     if warning:
         ax.text(0.015, 0.97, warning, transform=ax.transAxes, va="top", ha="left",
-                color=RED, fontsize=max(12, _current_font_pt - 1),
+                color=RED, fontsize=max(8, _current_font_pt - 2),
                 bbox=dict(boxstyle="round,pad=0.4", facecolor="#FEF2F2", edgecolor=RED))
-    tidy(ax, title=title, xlabel=variable, ylabel="Valor estimado", x_values=x_arr, y_values=y_arr)
+    tidy(ax, title=title, xlabel=variable, ylabel="Valor estimado",
+         x_values=x_arr, y_values=y_arr)
+    if len(x_arr) >= 2:
+        ax.legend(loc="best", fontsize=max(8, _current_font_pt - 3))
     fig.tight_layout()
     return fig, ax
 

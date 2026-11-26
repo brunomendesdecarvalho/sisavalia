@@ -32,7 +32,6 @@ from core.report_generator import (
 from .data_tab import DataTab
 from .diagnostics_tab import DiagnosticsTab
 from .evaluation_tab import EvaluationTab
-from .explore_tab import ExploreTab
 from .export_dialog import ExportDialog
 from .file_dialogs import open_file_name, save_file_name
 from .help_dialog import HelpDialog
@@ -112,7 +111,6 @@ class MainWindow(QMainWindow):
         self.workspace.setMovable(False)
         self.workspace.setUsesScrollButtons(True)
         self.data_tab = DataTab(self.manager)
-        self.explore_tab = ExploreTab(self.manager)
         self.regression_tab = RegressionTab(
             self.manager,
             get_evaluation=lambda: self.current_evaluation,
@@ -128,13 +126,12 @@ class MainWindow(QMainWindow):
         self.plugins_tab = PluginsTab(self.manager, self.plugin_manager)
         for widget, label in (
             (self.data_tab, "1. Dados"),
-            (self.explore_tab, "2. Explorar"),
-            (self.regression_tab, "3. Regressão && ANOVA"),
-            (self.evaluation_tab, "4. Avaliando && NBR 14653"),
-            (self.diagnostics_tab, "5. Resíduos && Cook"),
-            (self.multivariate_tab, "6. K-Médias && PCA"),
-            (self.simulation_tab, "7. Simulação"),
-            (self.plugins_tab, "8. Plugins"),
+            (self.regression_tab, "2. Regressão && ANOVA"),
+            (self.evaluation_tab, "3. Avaliando && NBR 14653"),
+            (self.diagnostics_tab, "4. Resíduos && Cook"),
+            (self.multivariate_tab, "5. K-Médias && PCA"),
+            (self.simulation_tab, "6. Simulação"),
+            (self.plugins_tab, "7. Plugins"),
         ):
             self.workspace.addTab(widget, label)
         self.stack.addWidget(self.initial_page)
@@ -207,7 +204,7 @@ class MainWindow(QMainWindow):
         font_label = QLabel("Tamanho da fonte:")
         row2.addWidget(font_label)
         self.font_combo = QComboBox()
-        self.font_combo.addItems(["Normal", "Grande", "Muito Grande"])
+        self.font_combo.addItems(["Pequena", "Normal", "Grande", "Muito Grande"])
         self.font_combo.setCurrentText(theme)
         self.font_combo.setMinimumWidth(150)
         self.font_combo.setToolTip("Aumenta a letra de todas as telas. A escolha fica guardada.")
@@ -309,9 +306,7 @@ class MainWindow(QMainWindow):
 
     def _tab_changed(self, index: int) -> None:
         widget = self.workspace.widget(index)
-        if widget is self.explore_tab:
-            self.explore_tab.set_evaluation(self.current_evaluation)
-        elif widget is self.regression_tab:
+        if widget is self.regression_tab:
             self.regression_tab.set_evaluation(self.current_evaluation)
         elif widget is self.evaluation_tab:
             self.evaluation_tab.ensure_selection()
@@ -326,7 +321,6 @@ class MainWindow(QMainWindow):
         self.fit = None
         self.diagnostics = None
         self.data_tab.set_manager(manager)
-        self.explore_tab.set_manager(manager)
         self.regression_tab.set_manager(manager)
         self.evaluation_tab.set_manager(manager)
         self.diagnostics_tab.set_manager(manager)
@@ -605,7 +599,6 @@ class MainWindow(QMainWindow):
             self.regression_tab.set_model(fit, diagnostics)
             self.evaluation_tab.set_model(fit)
             self.diagnostics_tab.set_model(fit, diagnostics)
-            self.explore_tab.set_evaluation(self.current_evaluation)
             self.regression_tab.set_evaluation(self.current_evaluation)
         except Exception as exc:
             log_exception("atualizar telas após o cálculo do modelo",
@@ -627,7 +620,6 @@ class MainWindow(QMainWindow):
         self.regression_tab.set_model(None, None)
         self.evaluation_tab.set_model(None)
         self.diagnostics_tab.set_model(None, None)
-        self.explore_tab.set_evaluation(None)
         self.regression_tab.set_evaluation(None)
         self._update_status()
 
@@ -665,14 +657,13 @@ class MainWindow(QMainWindow):
             self.regression_tab.set_model(None, None)
             self.evaluation_tab.set_model(None)
             self.diagnostics_tab.set_model(None, None)
-            self.explore_tab.set_manager(self.manager)
             self.multivariate_tab.set_manager(self.manager)
             self.simulation_tab.manager = self.manager
             self.plugins_tab.set_manager(self.manager)
             self._update_status()
             self._update_title()
             return
-        self.explore_tab.refresh()
+        self.data_tab.explore_panel.refresh()
         if reason in ("structure", "active"):
             self.multivariate_tab.set_manager(self.manager)
             self.plugins_tab.set_manager(self.manager)
@@ -684,7 +675,6 @@ class MainWindow(QMainWindow):
 
     def _on_evaluation_selection(self) -> None:
         result = self.current_evaluation
-        self.explore_tab.set_evaluation(result)
         self.regression_tab.set_evaluation(result)
         self._update_status()
 
@@ -695,7 +685,6 @@ class MainWindow(QMainWindow):
     def _on_points_deactivated(self) -> None:
         self.set_dirty(True)
         self.data_tab.refresh()
-        self.explore_tab.set_manager(self.manager)
         self.multivariate_tab.set_manager(self.manager)
         self.recalculate_model(show_errors=False, show_busy=True)
         self._update_status()
@@ -703,7 +692,6 @@ class MainWindow(QMainWindow):
     def _on_cluster_saved(self) -> None:
         self.set_dirty(True)
         self.data_tab.refresh()
-        self.explore_tab.refresh()
         self._update_status()
 
     def _on_simulation_loaded(self) -> None:
@@ -711,7 +699,6 @@ class MainWindow(QMainWindow):
         self.fit = None
         self.diagnostics = None
         self.data_tab.set_manager(self.manager)
-        self.explore_tab.set_manager(self.manager)
         self.regression_tab.set_manager(self.manager)
         self.evaluation_tab.set_manager(self.manager)
         self.diagnostics_tab.set_manager(self.manager)
@@ -750,7 +737,7 @@ class MainWindow(QMainWindow):
             button_widget.setIconSize(size)
         for tool_button in self.findChildren(QToolButton):
             tool_button.setIconSize(size)
-        for tab in (self.data_tab, self.explore_tab, self.regression_tab,
+        for tab in (self.data_tab, self.data_tab.explore_panel, self.regression_tab,
                     self.evaluation_tab, self.diagnostics_tab, self.multivariate_tab,
                     self.simulation_tab, self.plugins_tab):
             try:
@@ -771,10 +758,10 @@ class MainWindow(QMainWindow):
             log_exception("salvar adoção antes do relatório")
         self.recalculate_model(show_errors=False, mark_dirty=False)
         if self.fit is None:
-            show_warning(self, "Calcule o modelo antes de exportar o relatório. Confira os avisos da aba 3.")
+            show_warning(self, "Calcule o modelo antes de exportar o relatório. Confira os avisos da aba 2.")
             return
         if not self.manager.evaluated:
-            show_warning(self, "Inclua pelo menos um imóvel avaliando na aba 4 antes de exportar.")
+            show_warning(self, "Inclua pelo menos um imóvel avaliando na aba 3 antes de exportar.")
             return
         default_title = str(self.manager.metadata.get("work_name", "") or "Relatório de avaliação")
         dialog = ExportDialog(default_title, self.project_io.get_last_directory(), self)

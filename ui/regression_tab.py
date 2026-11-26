@@ -103,7 +103,7 @@ class RegressionTab(QWidget):
         root = QVBoxLayout(inner)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(10)
-        title = QLabel("3. Regressão & ANOVA")
+        title = QLabel("2. Regressão & ANOVA")
         title.setObjectName("PageTitle")
         root.addWidget(title)
         subtitle = QLabel(
@@ -156,6 +156,9 @@ class RegressionTab(QWidget):
         eq_row.addWidget(self.equation_edit, 1)
         eq_row.addWidget(self.copy_equation_button, 0, Qt.AlignmentFlag.AlignTop)
         self.model_card.add_layout(eq_row)
+        from .equation_view import EquationView
+        self.equation_view = EquationView(self)
+        self.model_card.add(self.equation_view)
         kpi_row = QHBoxLayout()
         kpi_row.setSpacing(8)
         self.kpi_r2 = KpiCard("R²", "—", tip("r2"))
@@ -288,6 +291,7 @@ class RegressionTab(QWidget):
             widget.setEnabled(enabled)
         if fit is None:
             self.equation_edit.setPlainText("")
+            self.equation_view.clear()
             self.kpi_r2.set_value("—")
             self.kpi_adj.set_value("—")
             self.kpi_se.set_value("—")
@@ -305,7 +309,9 @@ class RegressionTab(QWidget):
             self.curve_warning.setVisible(False)
             self.elasticity_label.setText("As elasticidades aparecem depois do cálculo.")
             return
-        self.equation_edit.setPlainText(fit.equation)
+        from core.equation import equation_latex
+        self.equation_edit.setPlainText(equation_latex(fit))
+        self.equation_view.set_fit(fit)
         self.kpi_r2.set_value(format_number(fit.rsquared, 4))
         self.kpi_adj.set_value(format_number(fit.rsquared_adj, 4))
         self.kpi_se.set_value(format_number(fit.scale, 4))
@@ -386,7 +392,14 @@ class RegressionTab(QWidget):
         self.corr_table.setMinimumHeight(min(420, 70 + 30 * len(names)))
 
     def _fill_fit_plot(self, fit: FitResult) -> None:
-        fig, _ = charting.fit_scatter(fit.observed_original, fit.fitted_original, fit.labels)
+        try:
+            est, ci_low, ci_high = fit.mean_ci_band(level=0.80)
+        except Exception:
+            ci_low = ci_high = None
+        fig, _ = charting.fit_scatter(
+            fit.observed_original, fit.fitted_original, fit.labels,
+            ci_low=ci_low, ci_high=ci_high, arbitrio_pct=15.0,
+        )
         self.fit_plot.set_figure(fig, x_values=fit.fitted_original, y_values=fit.observed_original,
                                  labels=fit.labels)
 
@@ -400,6 +413,21 @@ class RegressionTab(QWidget):
             idx = self.curve_combo.findData(current)
             if idx >= 0:
                 self.curve_combo.setCurrentIndex(idx)
+        else:
+            important = None
+            best = -1.0
+            for name in fit.x_names:
+                try:
+                    design = fit.design_names[fit.x_names.index(name)]
+                    score = abs(float(fit.tvalues[design]))
+                except Exception:
+                    continue
+                if score > best:
+                    best, important = score, name
+            if important:
+                idx = self.curve_combo.findData(important)
+                if idx >= 0:
+                    self.curve_combo.setCurrentIndex(idx)
         self.curve_combo.blockSignals(False)
 
     def update_curve(self) -> None:
@@ -426,7 +454,7 @@ class RegressionTab(QWidget):
                 base[name] = float(np.mean(values)) if values else 0.0
         self.curve_base_label.setText(f"As outras variáveis ficam no ponto: {source}.")
         try:
-            curve = self.fit.curve(variable, base)
+            curve = self.fit.curve_bands(variable, base, level=0.80)
         except Exception:
             self.curve_plot.clear_plot("Não foi possível desenhar a curva desta variável.")
             self.curve_warning.setVisible(False)
@@ -450,8 +478,12 @@ class RegressionTab(QWidget):
         point = None
         if result is not None and variable in result.values:
             point = (float(result.values[variable]), float(result.prediction.point))
-        fig, _ = charting.curve_plot(curve["x"].to_numpy(), curve["y"].to_numpy(),
-                                     variable=variable, point=point, warning=warning)
+        fig, _ = charting.curve_plot(
+            curve["x"].to_numpy(), curve["y"].to_numpy(),
+            variable=variable, point=point, warning=warning,
+            ci_low=curve["ci_low"].to_numpy(), ci_high=curve["ci_high"].to_numpy(),
+            pi_low=curve["pi_low"].to_numpy(), pi_high=curve["pi_high"].to_numpy(),
+        )
         self.curve_plot.set_figure(fig)
         try:
             rows = self.fit.elasticity_rows(base)

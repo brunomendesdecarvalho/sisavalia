@@ -182,12 +182,28 @@ def _build_images(context: ReportContext, *, summary: bool = False) -> dict[str,
     fit = context.fit
     images: dict[str, bytes] = {}
     charting.configure_matplotlib(12)
-    fig, _ = charting.fit_scatter(fit.observed_original, fit.fitted_original, fit.labels)
+    try:
+        _est, _ci_low, _ci_high = fit.mean_ci_band(level=0.80)
+    except Exception:
+        _ci_low = _ci_high = None
+    fig, _ = charting.fit_scatter(
+        fit.observed_original, fit.fitted_original, fit.labels,
+        ci_low=_ci_low, ci_high=_ci_high, arbitrio_pct=15.0,
+    )
     images["aderencia"] = charting.figure_to_bytes(fig, dpi=220)
     plt.close(fig)
+    try:
+        from .equation import equation_png_from_fit
+        images["equation"] = equation_png_from_fit(fit)
+        images["equation_original"] = equation_png_from_fit(fit, original=True)
+    except Exception:
+        LOGGER.debug("Equação não pôde ser convertida em imagem", exc_info=True)
     if summary:
         return images
-    fig, _ = charting.residual_fitted(fit.fitted_original, fit.residuals, fit.labels)
+    fig, _ = charting.residual_fitted(
+        fit.fitted_original, fit.residuals, fit.labels,
+        standardized=fit.standardized_residuals,
+    )
     images["residuos_ajustados"] = charting.figure_to_bytes(fig, dpi=220)
     plt.close(fig)
     fig, _ = charting.qq_plot(fit.residuals)
@@ -247,6 +263,10 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     note = f'<p class="note">{_h(log_note)}</p>' if log_note else ""
     image = (f'<div class="chart"><img src="aderencia" width="{image_width}"></div>'
              if "aderencia" in images else "")
+    equation_image = (
+        f'<div class="chart"><img src="equation" width="{image_width}"></div>'
+        if "equation" in images else f'<div class="equation">{_h(fit.equation)}</div>'
+    )
     sample_note = str(meta.get("sample_note", "") or "")
     sample_html = f'<p class="note">{_h(sample_note)}</p>' if sample_note else ""
     first = context.evaluations[0] if context.evaluations else None
@@ -270,7 +290,7 @@ def _summary_html(context: ReportContext, images: dict[str, bytes], *, image_wid
     <p class="note">Este anexo integra o laudo de avaliação. A identificação, os pressupostos, a qualificação legal e a assinatura constam no laudo principal.</p>
     <p class="small"><b>Imóveis na conta:</b> {manager.n_active} &nbsp; <b>Desligados:</b> {manager.n_inactive} &nbsp; <b>Gerado em:</b> {_h(context.generated_at)}</p>
     {sample_html}
-    <h2>Equação</h2><div class="equation">{_h(fit.equation)}</div>
+    <h2>Equação</h2>{equation_image}
     <p class="small"><b>Na escala original de Y:</b> {_h(fit.equation_original)}</p>
     <p><b>R²:</b> {_n(fit.rsquared, 4)} &nbsp; <b>R² ajustado:</b> {_n(fit.rsquared_adj, 4)} &nbsp;
     <b>Erro padrão:</b> {_n(fit.scale, 4)}</p>
@@ -412,6 +432,14 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
         "A sugestão de equação não substitui o seu julgamento. "
         "Confira os dados e o enquadramento antes de usar em laudo."
     )
+    equation_html = (
+        '<div class="chart"><img src="equation" width="420"></div>'
+        if "equation" in images else f'<div class="equation">{equation}</div>'
+    )
+    equation_original_html = (
+        '<div class="chart"><img src="equation_original" width="420"></div>'
+        if "equation_original" in images else f'<div class="equation">{equation_original}</div>'
+    )
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     body {{ font-family: 'DejaVu Sans', sans-serif; font-size: 11pt; line-height: 1.5; color: #0f172a; text-align: justify; }}
     p {{ margin: 0 0 6pt 0; text-indent: 1.25cm; }}
@@ -438,9 +466,9 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
     {sample_table}
     <h2>2. Equação ajustada</h2>
     <p><b>Forma estimada (Y transformado):</b></p>
-    <div class="equation">{equation}</div>
+    {equation_html}
     <p><b>Forma não transformada da variável dependente (para o laudo):</b></p>
-    <div class="equation">{equation_original}</div>
+    {equation_original_html}
     <p><b>R²:</b> {_n(fit.rsquared, 4)} &nbsp; <b>R² ajustado:</b> {_n(fit.rsquared_adj, 4)} &nbsp;
     <b>Erro padrão dos resíduos:</b> {_n(fit.scale, 4)}</p>
     {note_html}
@@ -467,10 +495,14 @@ def _full_html(context: ReportContext, images: dict[str, bytes]) -> str:
 
 def _register_images_pdf(doc: Any, images: dict[str, bytes]) -> None:
     from PySide6.QtGui import QImage, QTextDocument
-    from PySide6.QtCore import QUrl
+    from PySide6.QtCore import Qt, QUrl
     for name, data in images.items():
         image = QImage()
         if image.loadFromData(data, "PNG"):
+            if name.startswith("equation") and image.width() > 420:
+                image = image.scaledToWidth(
+                    420, Qt.TransformationMode.SmoothTransformation
+                )
             doc.addResource(QTextDocument.ImageResource, QUrl(name), image)
 
 
@@ -626,12 +658,21 @@ def generate_docx(context: ReportContext, path: str | Path, *, summary: bool = F
                 p.runs[0].bold = True
                 p.runs[0].font.size = Pt(8.5)
             doc.add_heading("Equação", level=1)
-            p = doc.add_paragraph(fit.equation)
-            for run in p.runs:
-                run.font.size = Pt(9.5)
-            p = doc.add_paragraph("Na escala original de Y: " + fit.equation_original)
+            if "equation" in images:
+                _docx_add_image(doc, images["equation"], 12.0)
+            else:
+                p = doc.add_paragraph(fit.equation)
+                for run in p.runs:
+                    run.font.size = Pt(9.5)
+            p = doc.add_paragraph("Na escala original de Y:")
             for run in p.runs:
                 run.font.size = Pt(9)
+            if "equation_original" in images:
+                _docx_add_image(doc, images["equation_original"], 12.0)
+            else:
+                p = doc.add_paragraph(fit.equation_original)
+                for run in p.runs:
+                    run.font.size = Pt(9)
             small = doc.add_paragraph(
                 f"R²: {_n(fit.rsquared, 4)}    R² ajustado: {_n(fit.rsquared_adj, 4)}    "
                 f"Erro padrão: {_n(fit.scale, 4)}"
